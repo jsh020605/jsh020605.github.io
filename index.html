@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JO</title>
+<meta name="description" content="JO — 일정·국시·토익 바로가기">
+<meta name="theme-color" content="#2f4b8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JO">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* JO 입구: 위 = D-day, 가운데 = 앱 세 개(큰 버튼), 아래 = 이번 주 국시 목표. 앱 기록은 claude.ai 계정에 있고 이 페이지는 바로가기만 한다 */
+:root{
+  --bg:#f6f7f4; --card:#fff; --ink:#1e2a3a; --muted:#5f6b78; --line:#e2e5e0; --blue:#2f4b8a; --soft:#e6eefc; --hl:#fff1a8; --hl-ink:#7a5a00; --red:#c2410c;
+  --a1:#2f4b8a; --a2:#d9486f; --a3:#0f766e;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif; --f-display:"Do Hyeon","IBM Plex Sans KR",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#13161b; --card:#1b2028; --ink:#e6e9ee; --muted:#9aa4b0; --line:#2b313b; --blue:#9db4ea; --soft:#1f2b45; --hl:#4a3f12; --hl-ink:#f3d35a; --red:#fb8a5a;
+  --a1:#9db4ea; --a2:#f06a8f; --a3:#4fd1c0; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;min-height:100dvh;
+  padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.page{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.top h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:38px;line-height:1;color:var(--blue)}
+.top .d{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.dd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dd div{background:var(--soft);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.dd span{font-size:13px;color:var(--blue)} .dd b{font-family:var(--f-display);font-weight:400;font-size:36px;line-height:1;color:var(--blue)} .dd small{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dd .near b{color:var(--red)}
+.dd button{all:unset;cursor:pointer;font-size:12px;color:var(--muted);text-decoration:underline}
+.apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.app{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;border-top:6px solid var(--c);min-height:150px;transition:transform .12s}
+.app:hover{transform:translateY(-2px)} .app:active{transform:scale(.98)}
+.app .ic{font-size:30px;line-height:1} .app b{font-size:19px} .app span{font-size:13px;color:var(--muted)}
+.app .go{margin-top:auto;font-size:13px;font-weight:700;color:var(--c)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.card h2{margin:0;font-size:16px}
+.weeks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.weeks li{display:grid;grid-template-columns:96px 1fr;gap:8px;font-size:14px;padding:6px 8px;border-radius:8px}
+.weeks li small{font-family:var(--f-mono);color:var(--muted);font-size:12px}
+.weeks li.now{background:var(--hl);color:var(--hl-ink);font-weight:700} .weeks li.now small{color:var(--hl-ink)}
+.weeks li.past{opacity:.45}
+.foot{font-size:12px;color:var(--muted);margin:0}
+input[type=date]{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+@media (max-width:720px){.apps{grid-template-columns:1fr}.app{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 12px}.app span{flex-basis:100%}.app .go{margin:0 0 0 auto}}
+@media (prefers-reduced-motion: reduce){.app{transition:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top"><h1>JO</h1><span class="d" id="today"></span></header>
+
+  <section class="dd" id="dd"></section>
+
+  <nav class="apps" aria-label="앱">
+    <a class="app" style="--c:var(--a1)" href="https://claude.ai/artifact/RZMUXQAtFXWBg2fBPKP5ye"><span class="ic">🗓</span><b>JO Calendar</b><span>이번 주 할 일 · 말하는 공간 · 오늘 순위 · 한 달 달력</span><span class="go">열기 →</span></a>
+    <a class="app" style="--c:var(--a2)" href="https://claude.ai/artifact/J6ib32hUM244Y4JePpua9F"><span class="ic">📚</span><b>국시 퀘스트</b><span>복습 카드 3장 + 공부 퀘스트 1개 · 🔥 연속 기록</span><span class="go">열기 →</span></a>
+    <a class="app" style="--c:var(--a3)" href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W"><span class="ic">🔤</span><b>TOEIC Daily</b><span>단어 30 · Part 5·6·7 한 문제씩 · 영어 회화</span><span class="go">열기 →</span></a>
+  </nav>
+
+  <section class="card" id="weekCard">
+    <h2>국시 4주 계획</h2>
+    <ul class="weeks" id="weeks"></ul>
+  </section>
+
+  <p class="foot">앱은 claude.ai에서 열리고, 기록은 내 Claude 계정에만 저장돼요. 이 페이지는 바로가기예요.</p>
+</div>
+<script>
+(function(){
+  var pad = function(n){ return String(n).padStart(2, "0"); };
+  var fmt = function(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  var t0 = fmt(new Date()), DOW = ["일","월","화","수","목","금","토"];
+  var dow = function(s){ return DOW[new Date(s + "T00:00:00").getDay()]; };
+  var diff = function(a, b){ return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000); };
+  var get = function(k){ try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
+  var set = function(k, v){ try { localStorage.setItem(k, v); } catch (e) {} };
+  var GUKSI = "2026-12-13";
+  document.getElementById("today").textContent = t0.replace(/-/g, ".") + " (" + dow(t0) + ")";
+
+  function dd(label, d, editable){
+    if (!d) return '<div><span>★ ' + label + '</span><b>D-?</b>' + (editable ? '<small><input type="date" id="toeicIn" aria-label="토익 시험 날짜"></small>' : "") + "</div>";
+    var n = diff(t0, d);
+    return '<div class="' + (n >= 0 && n <= 14 ? "near" : "") + '"><span>★ ' + label + '</span><b>' + (n > 0 ? "D-" + n : n === 0 ? "D-DAY" : "D+" + (-n)) + '</b><small>' + d.replace(/-/g, ".") + " (" + dow(d) + ")" + (editable ? ' · <button id="toeicReset">바꾸기</button>' : "") + "</small></div>";
+  }
+  function renderDd(){
+    document.getElementById("dd").innerHTML = dd("국시", GUKSI) + dd("토익", get("jo.toeic"), true);
+    var inp = document.getElementById("toeicIn");
+    if (inp) inp.addEventListener("change", function(){ if (/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) { set("jo.toeic", inp.value); renderDd(); } });
+    var rs = document.getElementById("toeicReset");
+    if (rs) rs.addEventListener("click", function(){ set("jo.toeic", ""); renderDd(); });
+  }
+  renderDd();
+
+  var W = [
+    ["2026-11-16", "2026-11-22", "해부·생리·운동학 + 공중보건"],
+    ["2026-11-23", "2026-11-29", "진단평가(특수검사·평가도구) + 신경계 중재"],
+    ["2026-11-30", "2026-12-06", "전기·광선·심폐 + 의료관계법규"],
+    ["2026-12-07", "2026-12-12", "실전 — 기출 47~53회 시간 재고 풀기"],
+    ["2026-12-13", "2026-12-13", "🎯 시험"]
+  ];
+  if (t0 > GUKSI) { document.getElementById("weekCard").hidden = true; }
+  else {
+    document.getElementById("weeks").innerHTML = W.map(function(w, i){
+      var cls = t0 >= w[0] && t0 <= w[1] ? "now" : t0 > w[1] ? "past" : "";
+      var lab = i < 4 ? (i + 1) + "주 " : "";
+      return '<li class="' + cls + '"><small>' + lab + w[0].slice(5).replace("-", "/") + (w[0] !== w[1] ? "~" + w[1].slice(8) : "") + "</small><span>" + w[2] + "</span></li>";
+    }).join("");
+  }
+})();
+</script>
+</body>
+</html>
