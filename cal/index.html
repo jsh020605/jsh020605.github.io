@@ -62,7 +62,7 @@ ul.jobs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
 <body>
 <div class="page">
   <nav class="appnav"><a href="../">🏠 JO</a><span aria-current="page">📅 JO Calendar</span><a href="../gq/">📚 국시 퀘스트</a><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
-  <header class="top"><div class="brand"><h1>JO Calendar</h1><span id="chips" class="row"></span></div><div class="row"><span class="small muted" id="wk"></span><button class="btn sm" data-act="refresh">새로고침</button></div></header>
+  <header class="top"><div class="brand"><h1>JO Calendar</h1><span id="chips" class="row"></span></div><div class="row"><span class="small muted" id="wk"></span><a class="btn sm" href="#jobsCard">💼 채용 공고</a><button class="btn sm" data-act="refresh">새로고침</button></div></header>
   <div id="connect" class="card hidden"></div>
   <div class="grid" id="main">
     <div class="col">
@@ -76,11 +76,9 @@ ul.jobs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
       <section class="card"><h3 id="todayLab">오늘 순위</h3><ol class="rank" id="todayRank"></ol><h3>이번 주 순위</h3><ol class="rank" id="weekRank"></ol></section>
       <section class="card"><h2>📈 국시 진행도</h2><div id="prog" class="small muted">국시 퀘스트에 로그인돼 있으면 오늘 카드 수가 보여요.</div></section>
       <section class="card"><h2>📥 할 일 가져오기</h2><p class="small muted" style="margin:0">Claude가 만든 할 일 파일(JSON)을 넣어요. 같은 할 일은 내용만 바뀌고 완료 표시는 그대로예요.</p><input type="file" id="tFile" accept=".json,application/json"><div class="row"><button class="btn sm" data-act="import">가져오기</button><span class="small muted" id="impMsg"></span></div></section>
-      <section class="card"><h2>💼 채용 공고 <span class="small muted" id="jobAt"></span></h2>
-        <p class="small muted" style="margin:0">1차: Gemini가 구글 검색으로 찾기 → 2차: Claude 검증(✅). 링크로 꼭 확인하세요.</p>
-        <div class="row"><button class="btn sm primary" data-act="jobFind">공고 새로 찾기</button><button class="btn sm" data-act="jobCopy">Claude 검증용 복사</button><span class="small muted" id="jobMsg"></span></div>
-        <div id="jobs"></div>
-        <details><summary class="small muted">Claude 검증 결과 붙여 넣기</summary><textarea id="jobVerify" style="min-height:70px;font-family:var(--mono);font-size:12px;margin-top:6px" placeholder='Claude가 준 {"ok":[...],"remove":[...],"fix":[...]} 붙여 넣기'></textarea><div class="row"><button class="btn sm" data-act="jobApply">검증 반영</button></div></details></section>
+      <section class="card" id="jobsCard"><h2>💼 채용 공고 <span class="small muted" id="jobAt"></span></h2>
+        <p class="small muted" style="margin:0">매일 저녁 Claude가 사람인·메디잡·굿잡피티에서 찾아 올려요(신입·경력무관, 서울·인천·부천·안산·시흥·김포·수원). 마감 지난 공고는 안 보여요.</p>
+        <div id="jobs"></div></section>
     </div>
     <div class="col">
       <section class="card"><div class="row" style="justify-content:space-between"><h2>🗓 <span id="calTitle"></span></h2><div class="row"><button class="btn sm ghost" data-act="prev">‹</button><button class="btn sm ghost" data-act="thisM">이번 달</button><button class="btn sm ghost" data-act="next">›</button></div></div>
@@ -124,65 +122,32 @@ async function initFb() {
         T = Object.values(cloud); saveLocal(); saveState = "saved";
       } catch (e) { err = "계정에서 할 일을 불러오지 못했어요: " + (e.code || e.message); }
       loadProg();
-      try { const jd = await jobRef().get(); if (jd.exists) { JOBS = jd.data(); lsSet("cal.jobs", JOBS); } else if (JOBS) jobRef().set(clean(JOBS)).catch(() => {}); } catch (e) {}
     }
     render();
   });
 }
 const open = () => T.filter(t => !t.done), byP = (a, b) => ((a.p || 2) - (b.p || 2)) || String(a.due || a.day).localeCompare(String(b.due || b.day));
 const uid = () => "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-/* ---- 채용 공고: Gemini(구글 검색) 1차 → Claude 2차 검증(붙여 넣기) · 저장 users/{uid}/calMeta/jobs ---- */
-let JOBS = lsGet("cal.jobs", null);
-const jobRef = () => fdb.collection("users").doc(user.uid).collection("calMeta").doc("jobs");
-function saveJobs() { lsSet("cal.jobs", JOBS); if (user && fdb) jobRef().set(clean(JOBS)).catch(() => {}); renderJobs(); }
-async function gemini(prompt) {
-  if (!cfg.geminiKey) throw { msg: "국시 퀘스트 설정에서 Gemini 키를 넣어 주세요(같은 키를 써요)." };
-  const models = [cfg.model || "gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
-  let last = "";
-  for (const m of [...new Set(models)]) {
-    try {
-      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent", { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.geminiKey },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], tools: [{ google_search: {} }], generationConfig: { temperature: 0.2 } }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { last = m + ": " + ((j.error && j.error.message) || r.status); continue; }
-      return ((j.candidates || [])[0] || {}).content ? j.candidates[0].content.parts.map(p => p.text || "").join("") : "";
-    } catch (e) { last = m + ": " + e.message; }
-  }
-  throw { msg: "Gemini 실패 — " + last };
-}
-async function findJobs() {
-  const msg = $("#jobMsg"); msg.textContent = "Gemini가 찾는 중… (30초~1분)";
-  const t0 = today();
-  const prompt = "오늘은 " + t0 + "이다. 구글 검색으로 한국의 물리치료사 채용 공고를 찾는다. 조건: 신입 또는 경력무관, 지역 서울·인천·부천·안산·시흥·김포·수원, 병원·의원·요양병원·재활병원. 출처: 사람인, 잡코리아, 메디잡, 굿잡피티, 병원 채용 페이지, 잡알리오. 마감일이 오늘 이후인 공고만(마감 지난 것 제외). 실제로 검색에서 확인한 공고만 쓰고 지어내지 않는다. 최대 25개." +
-    '\n결과는 설명 없이 JSON 배열 하나만: [{"hospital":"병원 이름","title":"공고 제목 짧게","region":"시·구","type":"정규직/계약직/인턴 등","career":"신입/경력무관","deadline":"YYYY-MM-DD 또는 채용시 마감","url":"공고 주소","source":"사이트 이름"}]';
-  try {
-    const txt = await gemini(prompt), a = txt.indexOf("["), b = txt.lastIndexOf("]");
-    const arr = JSON.parse(txt.slice(a, b + 1)).filter(x => x && x.hospital && (!/^\d{4}-\d{2}-\d{2}$/.test(x.deadline || "") || x.deadline >= t0));
-    const prev = new Set(((JOBS && JOBS.items) || []).map(x => x.hospital + "|" + x.title));
-    JOBS = { at: t0 + " " + new Date().toTimeString().slice(0, 5), by: "Gemini", verified: false, items: arr.map((x, i) => Object.assign({ n: i + 1, isNew: !prev.has(x.hospital + "|" + x.title), v: false }, x)) };
-    saveJobs(); msg.textContent = "✅ " + arr.length + "건 찾았어요. 「Claude 검증용 복사」로 검증받으세요.";
-  } catch (e) { msg.textContent = e.msg || "찾지 못했어요. 다시 눌러 주세요."; }
-}
+/* ---- 채용 공고: Claude 예약 작업이 매일 저녁 jobs.json으로 올린다(공개 공고 정보만) ---- */
+let JOBS = null;
+async function loadJobs() { try { const r = await fetch("jobs.json?v=" + Date.now()); if (r.ok) { JOBS = await r.json(); renderJobs(); if (location.hash === "#jobs" || location.hash === "#jobsCard") { const c = $("#jobsCard"); if (c) c.scrollIntoView({ block: "start" }); } } } catch (e) {} }
+let jobReg = "전체";
+const regOf = x => { const r = String(x.region || ""); for (const k of ["서울", "인천", "부천", "안산", "시흥", "김포", "수원"]) if (r.includes(k)) return k; return "기타"; };
 function renderJobs() {
   const el = $("#jobs"); if (!el) return;
-  if (!JOBS || !(JOBS.items || []).length) { el.innerHTML = '<p class="small muted" style="margin:0">아직 없어요. 「공고 새로 찾기」를 눌러 주세요.</p>'; $("#jobAt").textContent = ""; return; }
-  const t0 = today(), near = x => /^\d{4}-\d{2}-\d{2}$/.test(x.deadline || "") && diff(t0, x.deadline) <= 3;
-  const items = JOBS.items.filter(x => !x.removed && (!/^\d{4}-\d{2}-\d{2}$/.test(x.deadline || "") || x.deadline >= t0)).sort((a, b) => String(a.deadline || "9").localeCompare(String(b.deadline || "9")));
-  $("#jobAt").textContent = "(" + JOBS.at + (JOBS.verified ? " · ✅ Claude 검증" : " · 검증 전") + ")";
-  el.innerHTML = '<ul class="jobs">' + items.map(x => '<li class="' + (x.v ? "v" : "") + '">' + (x.v ? "✅ " : "") + (x.isNew ? "🆕 " : "") + (near(x) ? "⏰ " : "") + (/^https?:\/\//.test(x.url || "") ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.hospital) + "</a>" : "<b>" + esc(x.hospital) + "</b>") + " <span class=\"small\">" + esc(x.title || "") + '</span><div class="jm">#' + x.n + " · " + esc([x.region, x.type, x.career, x.deadline ? "마감 " + (/^\d{4}/.test(x.deadline) ? md(x.deadline) : x.deadline) : "", x.source].filter(Boolean).join(" · ")) + "</div></li>").join("") + "</ul>";
-}
-async function copyJobs() {
-  if (!JOBS) return; const lines = JOBS.items.filter(x => !x.removed).map(x => [x.n, x.hospital, x.title, x.region, x.deadline, x.url].join(" | "));
-  const text = "공고 검증해 줘 (" + JOBS.at + ")\n" + lines.join("\n");
-  try { await navigator.clipboard.writeText(text); $("#jobMsg").textContent = "✅ 복사했어요. Claude 채팅에 붙여 넣으세요."; } catch (e) { $("#jobVerify").value = text; $("#jobMsg").textContent = "아래 칸 내용을 복사해 Claude에게 보내세요."; }
-}
-function applyVerify() {
-  let j; const raw = ($("#jobVerify").value || "").replace(/```(?:json)?/g, ""); try { j = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)); } catch (e) { $("#jobMsg").textContent = "검증 결과 모양을 읽지 못했어요."; return; }
-  const by = n => JOBS.items.find(x => x.n === +n);
-  (j.ok || []).forEach(n => { const x = by(n); if (x) x.v = true; });
-  (j.remove || []).forEach(n => { const x = by(n); if (x) x.removed = true; });
-  (j.fix || []).forEach(f => { const x = by(f.n); if (x) { Object.assign(x, f); x.v = true; } });
-  JOBS.verified = true; JOBS.at += ""; saveJobs(); $("#jobVerify").value = ""; $("#jobMsg").textContent = "✅ Claude 검증을 반영했어요.";
+  if (!JOBS || !(JOBS.items || []).length) { el.innerHTML = '<p class="small muted" style="margin:0">공고를 불러오는 중이에요…</p>'; return; }
+  const t0 = today(), dl = x => /^\d{4}-\d{2}-\d{2}$/.test(x.deadline || "") ? x.deadline : "", near = x => dl(x) && diff(t0, dl(x)) <= 3;
+  const all = JOBS.items.filter(x => !dl(x) || dl(x) >= t0).sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0) || String(dl(a) || "9").localeCompare(String(dl(b) || "9")));
+  const ORDER = ["서울", "인천", "부천", "안산", "시흥", "김포", "수원", "기타"], cnt = {}; all.forEach(x => { const r = regOf(x); cnt[r] = (cnt[r] || 0) + 1; });
+  const regs = ORDER.filter(r => cnt[r]);
+  $("#jobAt").textContent = "(" + (JOBS.at || JOBS.date || "") + " · " + all.length + "건 · " + (JOBS.checked || "") + ")";
+  const kindOf = x => x.kind || (/대학/.test(x.hospital + x.type) ? "대학병원" : /요양/.test(x.hospital) ? "요양병원" : /재활의학과병원|재활병원/.test(x.hospital + x.type) ? "재활병원" : /종합/.test(x.type || "") ? "종합병원" : /정형|척추|관절/.test(x.type || "") ? "정형·척추 전문병원" : "병원");
+  const KC = { "대학병원": "#2f4b8a", "종합병원": "#2f4b8a", "재활병원": "#2d8a5f", "어린이재활병원": "#2d8a5f", "요양병원": "#b5651d", "정형·척추 전문병원": "#7a5a00" };
+  const one = x => '<li class="' + (x.isNew ? "v" : "") + '"><span class="tag" style="background:' + (KC[kindOf(x)] || "#5f6b78") + ';color:#fff;margin-right:4px">' + esc(kindOf(x)) + "</span>" + (x.ok ? "✅ " : "") + (x.isNew ? "🆕 " : "") + (near(x) ? "⏰ " : "") + (/^https?:\/\//.test(x.url || "") ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.hospital) + "</a>" : "<b>" + esc(x.hospital) + "</b>") + '<div class="jm">' + esc([x.region, x.career, x.pay, dl(x) ? "마감 " + md(dl(x)) + "(" + dow(dl(x)) + ")" : (x.deadline ? "마감 " + x.deadline : ""), x.source].filter(Boolean).join(" · ")) + "</div></li>";
+  let h = (JOBS.summary ? '<div class="note" style="font-size:13px">' + esc(JOBS.summary) + "</div>" : "") +
+    '<div class="row" style="gap:6px">' + ["전체"].concat(regs).map(r => '<button class="btn sm' + (jobReg === r ? " primary" : "") + '" data-act="jobReg" data-id="' + r + '">' + r + " " + (r === "전체" ? all.length : cnt[r]) + "</button>").join("") + "</div>";
+  (jobReg === "전체" ? regs : [jobReg]).forEach(r => { const list = all.filter(x => regOf(x) === r); if (!list.length) return; h += '<h3 style="margin:6px 0 2px;color:var(--blue)">📍 ' + r + " (" + list.length + ')</h3><ul class="jobs">' + list.map(one).join("") + "</ul>"; });
+  el.innerHTML = h;
 }
 async function loadProg() {
   if (!user) return;
@@ -255,9 +220,7 @@ document.addEventListener("click", e => {
   if (a === "add") { const v = $("#inbox").value.trim(); if (!v) return; addTask(v, $("#addDay").value, $("#addCat").value, +$("#addP").value); $("#inbox").value = ""; $("#sendMsg").textContent = "✅ 추가했어요."; return; }
   if (a === "dAdd") { const v = ($("#dNew") || {}).value.trim(); if (!v) return; addTask(v, dlgDay); openDay(dlgDay); return; }
   if (a === "import") return importTasks();
-  if (a === "jobFind") return findJobs();
-  if (a === "jobCopy") return copyJobs();
-  if (a === "jobApply") return applyVerify();
+  if (a === "jobReg") { jobReg = id; return renderJobs(); }
   if (a === "refresh") return location.reload();
   if (a === "mic") return mic(b);
   if (a === "day") return openDay(id);
@@ -266,7 +229,7 @@ document.addEventListener("click", e => {
   if (a === "thisM") { viewM = today().slice(0, 7); return renderCal(); }
 });
 $("#micRow").innerHTML = '<button class="btn sm mic" data-act="mic" aria-pressed="false">🎤 말하기</button>';
-$("#addDay").value = today();
+$("#addDay").value = today(); loadJobs();
 render();
 initFb().catch(() => { err = "Firebase를 불러오지 못했어요."; render(); });
 </script>
