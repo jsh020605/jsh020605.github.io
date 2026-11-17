@@ -121,7 +121,22 @@ function cloudPut(kind, id, data) {
   if (!user || !fdb) { saveState = "local"; return; }
   saveState = "saving";
   const ref = kind === "card" ? uref().collection("cards").doc(id) : kind === "day" ? uref().collection("days").doc(id) : uref();
-  ref.set(clean(data)).then(() => { saveState = "saved"; refreshEnv(); if (!run && tab === "home") render(); }).catch(e => { saveState = "failed"; refreshEnv(); if (!run && tab === "home") render(); });
+  pending++; refreshEnv();
+  withTO(ref.set(clean(data)), 20000).then(() => { pending--; saveState = "saved"; refreshEnv(); if (!run && tab === "home") render(); }).catch(e => { pending--; saveState = "failed"; cloudStat = "⚠ 마지막 저장 실패: " + ((e && (e.code || e.message)) || e); refreshEnv(); if (!run && (tab === "home" || tab === "settings")) render(); });
+}
+const withTO = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code: "시간 초과(서버 응답 없음)" }), ms))]);
+let cloudStat = "", cloudCount = null, pending = 0;
+/* 계정 저장 시험: 실제로 한 번 쓰고 다시 읽어 본다 */
+async function cloudCheck() {
+  if (!user || !fdb) return;
+  cloudStat = "⏳ 계정 저장 시험 중…"; refreshEnv(); if (tab === "settings") render();
+  try {
+    await withTO(uref().set({ lastSeen: new Date().toISOString(), settings: S.settings }, { merge: true }), 12000);
+    const cs = await withTO(uref().collection("cards").get(), 12000); cloudCount = cs.size;
+    cloudStat = "✅ 계정 저장 확인됨 · 계정 카드 " + cloudCount + "장";
+    if (cloudCount < S.cards.length) { S.cards.forEach(c => cloudPut("card", c.id, c)); cloudStat += " → 이 기기 카드 " + S.cards.length + "장을 계정에 올리는 중"; }
+  } catch (e) { cloudStat = "⚠ 계정 저장 안 됨: " + ((e && (e.code || e.message)) || e); }
+  refreshEnv(); render();
 }
 async function cloudLoad() {
   const [u, cs, ds] = await Promise.all([uref().get(), uref().collection("cards").get(), uref().collection("days").get()]);
@@ -144,11 +159,11 @@ async function initFirebase() {
     const V = "10.12.2", B = "https://www.gstatic.com/firebasejs/" + V + "/";
     await loadScript(B + "firebase-app-compat.js"); await loadScript(B + "firebase-auth-compat.js"); await loadScript(B + "firebase-firestore-compat.js");
     fb = window.firebase; if (!fb.apps.length) fb.initializeApp(conf);
-    fdb = fb.firestore(); try { await fdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {}
+    fdb = fb.firestore(); try { fdb.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
     try { await fb.auth().getRedirectResult(); } catch (e) { authErr = authText(e); }
     fb.auth().onAuthStateChanged(async u => {
       user = u || null;
-      if (user) { try { await cloudLoad(); saveState = "saved"; } catch (e) { authErr = "계정 기록을 불러오지 못했어요: " + (e.code || e.message); } }
+      if (user) { try { await withTO(cloudLoad(), 15000); saveState = "saved"; } catch (e) { authErr = "계정 기록을 불러오지 못했어요: " + ((e && (e.code || e.message)) || e); } cloudCheck(); }
       refreshEnv(); renderHeader(); render();
     });
   } catch (e) { authErr = "Firebase를 불러오지 못했어요(인터넷·설정값 확인)."; }
@@ -234,7 +249,7 @@ function renderHeader() {
 }
 function refreshEnv() {
   const where = user ? "☁️ 내 계정(" + (user.email || "Google") + ")" : (fb ? "📱 이 기기만 — 설정에서 로그인하면 핸드폰·맥이 같은 기록" : "📱 이 기기만 — 설정에서 Firebase를 연결하세요");
-  $("#env").textContent = "저장: " + where + (saveState === "failed" ? " · ⚠ 마지막 저장 실패(연결되면 다시 보냄)" : "") + " · 채점: " + (cfg.geminiKey ? "Gemini" : "키 없음");
+  $("#env").textContent = "저장: " + where + " · 이 기기 카드 " + S.cards.length + "장" + (pending ? " · 보내는 중 " + pending : "") + (cloudStat ? " · " + cloudStat : "") + " · 채점: " + (cfg.geminiKey ? "Gemini" : "키 없음");
 }
 function setTab(t) { tab = t; run = null; rev = null; document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); render(); window.scrollTo(0, 0); }
 function render() {
@@ -391,7 +406,7 @@ function viewCards() {
 function viewSettings() {
   const fbBox = !cfg.firebase
     ? '<p class="small muted" style="margin:0">Firebase 콘솔의 웹 앱 설정값(<code>{ apiKey, authDomain, projectId, … }</code>)을 붙여 넣으면 로그인·동기화가 켜져요. 방법은 볼트의 「국시 퀘스트 웹 Firebase 설정」 문서를 보세요.</p><textarea id="fbConf" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder=\'{"apiKey":"…","authDomain":"….firebaseapp.com","projectId":"…","appId":"…"}\'></textarea><div class="row"><button class="btn primary" data-act="saveFb">Firebase 연결</button></div>'
-    : (user ? '<p style="margin:0">☁️ 로그인: <b>' + esc(user.email || "Google 계정") + '</b></p><div class="row"><button class="btn" data-act="signOut">로그아웃</button></div>'
+    : (user ? '<p style="margin:0">☁️ 로그인: <b>' + esc(user.email || "Google 계정") + '</b></p><p class="small" style="margin:0">' + esc(cloudStat || "") + '</p><div class="row"><button class="btn primary" data-act="cloudCheck">계정 저장 시험 · 카드 올리기</button><button class="btn" data-act="signOut">로그아웃</button></div>'
       : '<div class="row"><button class="btn primary" data-act="google">Google로 로그인</button></div><p class="small muted" style="margin:0">구글 로그인이 안 되면 이메일로:</p><input type="email" id="em" placeholder="이메일" autocomplete="username"><input type="password" id="pw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password"><div class="row"><button class="btn" data-act="emailIn">로그인</button><button class="btn ghost" data-act="emailUp">처음이면 가입</button></div>') +
       '<p class="small muted" style="margin:0">연결된 프로젝트: ' + esc((() => { try { const o = JSON.parse(cfg.firebase); return (o.projectId || "?") + " · apiKey …" + String(o.apiKey || "").slice(-4) + " (" + String(o.apiKey || "").length + "자)"; } catch (e) { return "?"; } })()) + '</p><details><summary class="small muted">Firebase 설정값 바꾸기</summary><div class="row" style="margin-top:6px"><button class="btn sm ghost" data-act="clearFb">Firebase 연결 끊기</button></div></details>';
   return '<section class="sheet"><h2>☁️ 계정·동기화 (Firebase)</h2>' + (authErr ? '<div class="notice">' + esc(authErr) + "</div>" : "") + fbBox + "</section>" +
@@ -440,6 +455,7 @@ document.addEventListener("click", async e => {
   if (a === "revExit") { rev = null; return render(); }
   if (a === "saveFb") { const v = (($("#fbConf") || {}).value || "").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/[\u201C\u201D\u201E\u2033]/g, '"').replace(/[\u2018\u2019\u2032]/g, "'"); try { const o = {}; v.replace(/\b(apiKey|authDomain|projectId|storageBucket|messagingSenderId|appId|measurementId)\b["']?\s*:\s*["']([^"'\s]+)["']/g, (m, k, val) => { o[k] = val; return m; }); if (!o.apiKey || !o.projectId) throw 0; cfg.firebase = JSON.stringify(o); saveCfg(); authErr = ""; await initFirebase(); } catch (x) { authErr = "설정값을 읽지 못했어요. Firebase 콘솔의 firebaseConfig { … } 부분을 그대로 붙여 넣어 주세요."; } render(); refreshEnv(); return; }
   if (a === "clearFb") { cfg.firebase = ""; saveCfg(); try { fb && fb.auth().signOut(); } catch (x) {} user = null; location.reload(); return; }
+  if (a === "cloudCheck") return cloudCheck();
   if (a === "google") return signInGoogle();
   if (a === "emailIn") return signInEmail(false);
   if (a === "emailUp") return signInEmail(true);
