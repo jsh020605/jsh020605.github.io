@@ -256,15 +256,24 @@ function viewHome() {
   h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "🔥 오늘 할당량 완료! 연속 " + streak() + "일째" : "카드 " + Math.min(x.cardsDone, q) + "/" + q + " — " + (q - x.cardsDone) + "장 더 하면 완료") + (x.reviewDone ? " · 복습 " + x.reviewDone + "문제" : "") + "</p></section>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
     (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div><ul class="list">' + before.slice(0, 15).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
+  const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 학습 완료</h2><span class="chip ok">' + done.length + "장</span></div>" +
-    (done.length ? '<ul class="list">' + done.slice().reverse().map(({ c, h: r }) => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">퀴즈 ' + esc(r.quiz) + " 맞음" + (r.explain != null ? " · 설명 " + r.explain + "점" : "") + " · 다음 복습 " + md(c.nextReview) + "</span>" + ((r.missing || []).length ? '<span class="small" style="color:var(--warn)">빠뜨린 것: ' + esc(r.missing.join(", ")) + "</span>" : "") + '</span><button class="btn sm ghost" data-act="study" data-id="' + esc(c.id) + '">다시 보기</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">카드를 끝내면 몇 개 맞았는지와 함께 여기에 쌓여요.</p>') + "</section>";
+    (done.length ? '<ul class="list">' + done.slice().reverse().map(({ c, h: r }) => '<li style="flex-direction:column;align-items:stretch"><div class="row" style="justify-content:space-between"><b>' + esc(c.topic) + '</b><span class="small muted">퀴즈 ' + esc(r.quiz) + " 맞음" + (r.explain != null ? " · 설명 " + r.explain + "점" : "") + "</span></div>" +
+      (asArr(r.asked).length ? '<div class="small" style="display:flex;flex-direction:column;gap:2px">' + asArr(r.asked).map(x => '<span style="color:' + (x.ok ? "var(--ok)" : "var(--no)") + '">' + (x.ok ? "✓ " : "✗ ") + esc(cut(x.q, 48)) + "</span>").join("") + "</div>" : "") +
+      '<div class="row" style="justify-content:space-between"><span class="small muted">다음 복습 ' + md(c.nextReview) + '</span><button class="btn sm ghost" data-act="study" data-id="' + esc(c.id) + '">다시 보기</button></div></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">퀴즈를 채점하면 여기에 낸 문제와 맞았는지가 쌓여요.</p>') + "</section>";
   const pool = reviewPool();
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🔁 복습</h2><span class="chip mute">' + pool.length + '장</span></div><p class="small muted" style="margin:0">오늘·최근 7일 끝낸 카드 중 점수 낮은 순으로, Gemini가 핵심 요약 + 새 문제를 만들어요.</p>' + (pool.length ? '<div class="row"><button class="btn primary" data-act="revStart">복습 세션 시작 (' + Math.min(8, pool.length) + "장)</button></div>" : "") + "</section>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🔁 복습 — 틀린 것만</h2><span class="chip mute">' + pool.reduce((n, o) => n + o.items, 0) + "개</span></div>" +
+    (pool.length ? '<ul class="list">' + pool.slice(0, 10).map(({ c, r }) => '<li style="flex-direction:column;align-items:stretch"><b>' + esc(c.topic) + '</b><div class="small" style="display:flex;flex-direction:column;gap:4px">' +
+        asArr(r.wrongQs).map(w => "<span>✗ " + esc(cut(w.q, 60)) + '<br><span class="muted">정답: <b>' + esc(w.right) + "</b>" + (w.why ? " — " + esc(cut(w.why, 80)) : "") + "</span></span>").join("") +
+        asArr(r.missed).map(m => "<span>❗ " + esc(m.point) + (m.explain ? '<br><span class="muted">' + esc(cut(m.explain, 90)) + "</span>" : "") + "</span>").join("") +
+        asArr(r.wrongSaid).map(w => "<span>✖ " + esc(cut(w.said, 50)) + (w.fix ? '<br><span class="muted">→ ' + esc(cut(w.fix, 90)) + "</span>" : "") + "</span>").join("") +
+        '</div></li>').join("") + '</ul><div class="row"><button class="btn primary" data-act="revStart">틀린 것만 복습 세션 (' + Math.min(pool.length, 8) + "장)</button></div>"
+      : '<p class="small muted" style="margin:0">' + (done.length ? "최근 7일 동안 틀린 문제가 없어요 👏" : "퀴즈에서 틀린 문제와 설명에서 빠뜨린 내용이 여기에 모여요.") + "</p>") + "</section>";
   return h;
 }
 
 /* ============ 카드 공부 ============ */
-function startRun(card) { stopVoice(); run = { card, step: 0, gate: false, picks: {}, checked: false, explain: "", grade: null, busy: false, err: "" }; render(); window.scrollTo(0, 0); }
+function startRun(card) { stopVoice(); run = { card, box0: card.box || 0, histIdx: null, counted: false, step: 0, gate: false, picks: {}, checked: false, explain: "", grade: null, busy: false, err: "" }; render(); window.scrollTo(0, 0); }
 const quizScore = () => (run.card.quiz || []).reduce((n, q, i) => n + (run.picks[i] === q.answer ? 1 : 0), 0);
 function block(title, arr, k) {
   if (!arr || !arr.length) return "";
@@ -316,37 +325,50 @@ async function grade() {
   const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 우리말 용어로 말해도 인정한다. 한국어로.\n\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
     "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 소리 내어 읽어 줄 총평 1~2문장(존댓말). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
     'JSON만: {"score":0~100 정수,"summary":"","good":[{"point":"","why":""}],"missing":[{"point":"","explain":""}],"wrong":[{"said":"","fix":""}],"better":""}';
-  try { run.grade = await gemini(prompt); speak(gradeSpeech(run.grade)); }
+  try { run.grade = await gemini(prompt); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
   catch (e) { run.err = gErr(e); }
   run.busy = false; render();
 }
-function finishCard() {
-  const c = run.card, total = (c.quiz || []).length, qs = quizScore(), es = run.grade ? (run.grade.score | 0) : null;
-  const pass = qs === total && (es == null || es >= 70), t0 = today();
-  const again = (c.history || []).some(r => r.date === t0);
-  c.box = pass ? Math.min((c.box || 0) + 1, INTERVALS.length) : 0;
-  c.nextReview = addDays(t0, pass ? INTERVALS[Math.max(0, c.box - 1)] : 1);
-  c.history = (c.history || []).concat([{ date: t0, quiz: qs + "/" + total, explain: es, missing: run.grade ? (run.grade.missing || []).map(m => typeof m === "object" ? m.point : m).filter(Boolean).slice(0, 4) : [] }]).slice(-20);
-  lastDone = { topic: c.topic, quiz: qs + "/" + total, explain: es, next: c.nextReview };
-  cloudPut("card", c.id, c);
-  if (!again) setDay(t0, { cardsDone: dayOf(t0).cardsDone + 1 });
-  stopVoice(); run = null; tab = "home"; renderHeader(); setTab("home");
+const asArr = v => Array.isArray(v) ? v : (v ? [v] : []);
+function buildEntry() {
+  const c = run.card, quiz = asArr(c.quiz), g = run.grade, total = quiz.length, qs = quizScore();
+  const ch = (q, i) => { const v = asArr(q.choices)[i]; return v == null ? "안 고름" : String(v); };
+  return {
+    date: today(), quiz: qs + "/" + total, explain: g ? (g.score | 0) : null,
+    asked: quiz.map((q, i) => ({ q: String(q.q || ""), ok: run.picks[i] === q.answer })),
+    wrongQs: quiz.map((q, i) => ({ q, i })).filter(o => run.picks[o.i] !== o.q.answer).map(({ q, i }) => ({ q: String(q.q || ""), mine: ch(q, run.picks[i]), right: ch(q, q.answer), why: String(q.why || "") })),
+    missed: g ? asArr(g.missing).map(m => typeof m === "object" ? { point: String(m.point || ""), explain: String(m.explain || "") } : { point: String(m), explain: "" }).filter(x => x.point) : [],
+    wrongSaid: g ? asArr(g.wrong).map(w => typeof w === "object" ? { said: String(w.said || ""), fix: String(w.fix || "") } : { said: String(w), fix: "" }).filter(x => x.said || x.fix) : []
+  };
 }
+/* 퀴즈를 채점하는 순간 완료로 기록, 설명 채점·끝내기 때 같은 기록을 고친다(중간에 나가도 남는다) */
+function recordCard() {
+  const c = run.card, e = buildEntry(), [ok, tot] = e.quiz.split("/").map(Number), pass = ok === tot && (e.explain == null || e.explain >= 70);
+  const hist = asArr(c.history).slice(-19);
+  if (run.histIdx != null && hist[run.histIdx] && hist[run.histIdx].date === e.date) hist[run.histIdx] = e;
+  else { const again = hist.some(r => r && r.date === e.date); hist.push(e); run.histIdx = hist.length - 1; if (!again && !run.counted) { run.counted = true; setDay(e.date, { cardsDone: dayOf(e.date).cardsDone + 1 }); } }
+  c.history = hist;
+  c.box = pass ? Math.min(run.box0 + 1, INTERVALS.length) : 0;
+  c.nextReview = addDays(e.date, pass ? INTERVALS[Math.max(0, c.box - 1)] : 1);
+  lastDone = { topic: c.topic, quiz: e.quiz, explain: e.explain, next: c.nextReview };
+  cloudPut("card", c.id, c); renderHeader();
+}
+function finishCard() { try { recordCard(); } catch (e) {} stopVoice(); run = null; tab = "home"; renderHeader(); setTab("home"); }
 
 /* ============ 복습 세션 ============ */
 function reviewPool() {
-  const wk = addDays(today(), -7);
-  const sc = c => { const r = (c.history || []).slice(-1)[0] || {}; const [a, b] = String(r.quiz || "0/0").split("/").map(Number); return (b ? a / b : 1) + (r.explain != null ? r.explain / 100 : 1); };
-  return S.cards.filter(c => (c.history || []).some(r => r.date >= wk)).sort((a, b) => sc(a) - sc(b));
+  const wk = addDays(today(), -7), out = [];
+  S.cards.forEach(c => { const r = asArr(c.history).filter(x => x && x.date >= wk).slice(-1)[0]; if (!r) return; const items = asArr(r.wrongQs).length + asArr(r.missed).length + asArr(r.wrongSaid).length; if (items) out.push({ c, r, items }); });
+  return out.sort((a, b) => b.items - a.items);
 }
 async function reviewStart() {
-  const cards = reviewPool().slice(0, 8); if (!cards.length) return;
+  const pool = reviewPool().slice(0, 8); if (!pool.length) return;
   rev = { items: [], i: 0, right: 0, busy: true, err: "", done: false }; render(); window.scrollTo(0, 0);
-  const data = cards.map(c => { const r = (c.history || []).slice(-1)[0] || {}; return { topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), keyPoints: c.keyPoints || [], oldQuestions: (c.quiz || []).map(q => q.q), missed: r.missing || [] }; });
-  const prompt = "학생이 공부한 한국 물리치료사 국가시험 카드로 복습 세션을 만든다. 한국어로. 카드마다 summary = 시험 직전 핵심 요약 2~3줄(숫자·용어 정확히, 학생이 빠뜨린 것(missed) 포함), q = 원래 문제(oldQuestions)와 다른 새 국시형 5지선다 1문제, choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장.\n카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
-  try { const arr = await gemini(prompt, 60000); rev.items = (Array.isArray(arr) ? arr : []).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
+  const data = pool.map(({ c, r }) => ({ topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), wrongQuestions: asArr(r.wrongQs).map(w => ({ q: w.q, studentPicked: w.mine, correct: w.right, why: w.why })), missedInExplanation: asArr(r.missed), wronglySaid: asArr(r.wrongSaid) }));
+  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장.\n틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  try { const arr = await gemini(prompt, 60000); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
-  if (!rev.items.length) rev.items = cards.map(c => { const q = (c.quiz || [])[Math.floor(Math.random() * Math.max(1, (c.quiz || []).length))] || {}; return { topic: c.topic, summary: (c.keyPoints || []).slice(0, 3).join(" / "), q: q.q || "", choices: q.choices || [], answer: q.answer | 0, why: q.why || "", pick: null }; }).filter(x => x.q);
+  if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
   rev.busy = false; render();
 }
 function viewReview() {
@@ -401,11 +423,11 @@ document.addEventListener("click", async e => {
   const a = b.dataset.act, id = b.dataset.id;
   if (a === "study") { const c = S.cards.find(x => x.id === id); if (c) startRun(c); return; }
   if (a === "studyNext") { const ids = new Set(todayStudy().map(o => o.c.id)), c = due().find(x => !ids.has(x.id)); if (c) startRun(c); return; }
-  if (a === "exitRun") { stopVoice(); run = null; return render(); }
+  if (a === "exitRun") { stopVoice(); const was = run && run.histIdx != null; run = null; if (!was) lastDone = null; tab = "home"; return setTab("home"); }
   if (a === "next") { stopVoice(); run.gate = true; render(); window.scrollTo(0, 0); return; }
   if (a === "gateGo") { run.gate = false; run.step++; render(); window.scrollTo(0, 0); return; }
   if (a === "pick") { run.picks[+b.dataset.q] = +b.dataset.c; return render(); }
-  if (a === "check") { run.checked = true; return render(); }
+  if (a === "check") { run.checked = true; try { recordCard(); } catch (x) {} return render(); }
   if (a === "speakConcept") return speak(run.card.concept);
   if (a === "speakGrade") return speak(gradeSpeech(run.grade));
   if (a === "mic") return micToggle(id);
