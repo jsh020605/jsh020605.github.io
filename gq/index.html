@@ -28,6 +28,10 @@ h1,h2,h3{margin:0;line-height:1.3} h2{font-size:17px} h3{font-size:14px}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--navy)}
+.appnav{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.appnav a,.appnav span{padding:4px 12px;border-radius:99px;border:1px solid var(--line);text-decoration:none;color:var(--muted);white-space:nowrap}
+.appnav a:hover{color:var(--ink);border-color:var(--navy)}
+.appnav span[aria-current]{background:var(--navy);border-color:var(--navy);color:var(--sheet);font-weight:600}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .brand b{font-size:24px;color:var(--navy);letter-spacing:.3px} .brand small{color:var(--muted);font-size:12px;margin-left:6px}
 .fire{font-family:var(--mono);font-weight:700;color:var(--omr);font-size:18px}
@@ -79,6 +83,7 @@ ul.list .t{display:flex;flex-direction:column;min-width:0} ul.list .t b{overflow
 </head>
 <body>
 <div class="wrap">
+  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="https://claude.ai/artifact/RZMUXQAtFXWBg2fBPKP5ye">📅 JO Calendar</a><span aria-current="page">📚 국시 퀘스트</span><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
   <header class="top">
     <div class="brand"><b>국시 퀘스트</b><small id="dday"></small></div>
     <div class="row"><span class="fire" id="streak">0</span><span class="small muted">일 연속 🔥</span></div>
