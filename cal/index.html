@@ -75,7 +75,7 @@ ul.jobs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
     <div class="col">
       <section class="card"><h3 id="todayLab">오늘 순위</h3><ol class="rank" id="todayRank"></ol><h3>이번 주 순위</h3><ol class="rank" id="weekRank"></ol></section>
       <section class="card"><h2>📈 국시 진행도</h2><div id="prog" class="small muted">국시 퀘스트에 로그인돼 있으면 오늘 카드 수가 보여요.</div></section>
-      <section class="card"><h2>📥 할 일 가져오기</h2><p class="small muted" style="margin:0">Claude가 만든 할 일 파일(JSON)을 넣어요. 같은 할 일은 내용만 바뀌고 완료 표시는 그대로예요.</p><input type="file" id="tFile" accept=".json,application/json"><div class="row"><button class="btn sm" data-act="import">가져오기</button><span class="small muted" id="impMsg"></span></div></section>
+
       <section class="card" id="jobsCard"><h2>💼 채용 공고 <span class="small muted" id="jobAt"></span></h2>
         <p class="small muted" style="margin:0">매일 저녁 Claude가 사람인·메디잡·굿잡피티에서 찾아 올려요(신입·경력무관, 서울·인천·부천·안산·시흥·김포·수원). 마감 지난 공고는 안 보여요.</p>
         <div id="jobs"></div></section>
@@ -85,6 +85,7 @@ ul.jobs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
         <div class="month" id="month"></div><p class="small muted" id="calNote" style="margin:0"></p></section>
     </div>
   </div>
+<details class="card" style="padding:10px 16px"><summary class="small muted">📥 할 일 파일 가져오기 (Claude가 할 일을 한꺼번에 보낼 때만)</summary><p class="small muted" style="margin:0">Claude가 만든 할 일 파일(JSON)을 넣어요. 같은 할 일은 내용만 바뀌고 완료 표시는 그대로예요.</p><input type="file" id="tFile" accept=".json,application/json"><div class="row"><button class="btn sm" data-act="import">가져오기</button><span class="small muted" id="impMsg"></span></div></details>
   <p class="small muted" id="env" style="text-align:center"></p>
 </div>
 <dialog id="dlg"><div class="row" style="justify-content:space-between"><h2 id="dTitle"></h2><button class="btn sm ghost" data-act="close">닫기</button></div><div id="dBody" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div></dialog>
