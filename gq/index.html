@@ -112,6 +112,9 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const CFG_K = "gqw.cfg";
 let cfg = Object.assign({ geminiKey: "", model: "gemini-2.5-flash", firebase: "" }, lsGet(CFG_K, {}));
 const saveCfg = () => lsSet(CFG_K, cfg);
+/* 설정 링크: …/gq/#fb=<Firebase 설정값> 으로 열면 자동으로 채운다(# 뒤는 서버로 안 감) */
+(function () { const m = location.hash.match(/^#fb=(.+)$/); if (!m) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/"))))); if (o.apiKey && o.projectId) { cfg.firebase = JSON.stringify(o); saveCfg(); } } catch (e) {} try { history.replaceState(null, "", location.pathname); } catch (e) {} })();
+const fbLink = () => location.origin + location.pathname + "#fb=" + btoa(unescape(encodeURIComponent(cfg.firebase))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 /* ============ 저장소: 로그인 전엔 이 기기, 로그인하면 Firebase ============ */
 const DATA_K = "gqw.data";
@@ -143,6 +146,16 @@ async function cloudCheck() {
   } catch (e) { cloudStat = "⚠ 계정 저장 안 됨: " + ((e && (e.code || e.message)) || e); }
   refreshEnv(); render();
 }
+const keyRef = () => uref().collection("private").doc("keys");
+async function syncKey() {
+  if (!user || !fdb) return;
+  try {
+    const d = await withTO(keyRef().get(), 12000), k = d.exists ? d.data() : {};
+    if (!cfg.geminiKey && k.geminiKey) { cfg.geminiKey = k.geminiKey; if (k.model) cfg.model = k.model; saveCfg(); }
+    else if (cfg.geminiKey && cfg.geminiKey !== k.geminiKey) await withTO(keyRef().set({ geminiKey: cfg.geminiKey, model: cfg.model, updated: today() }), 12000);
+  } catch (e) {}
+  refreshEnv(); if (tab === "settings") render();
+}
 async function cloudLoad() {
   const [u, cs, ds] = await Promise.all([uref().get(), uref().collection("cards").get(), uref().collection("days").get()]);
   const cloudCards = cs.docs.map(d => d.data()), cloudDays = {}; ds.docs.forEach(d => cloudDays[d.id] = d.data());
@@ -168,7 +181,7 @@ async function initFirebase() {
     try { await fb.auth().getRedirectResult(); } catch (e) { authErr = authText(e); }
     fb.auth().onAuthStateChanged(async u => {
       user = u || null;
-      if (user) { try { await withTO(cloudLoad(), 15000); saveState = "saved"; } catch (e) { authErr = "계정 기록을 불러오지 못했어요: " + ((e && (e.code || e.message)) || e); } cloudCheck(); }
+      if (user) { try { await withTO(cloudLoad(), 15000); saveState = "saved"; } catch (e) { authErr = "계정 기록을 불러오지 못했어요: " + ((e && (e.code || e.message)) || e); } cloudCheck(); syncKey(); }
       refreshEnv(); renderHeader(); render();
     });
   } catch (e) { authErr = "Firebase를 불러오지 못했어요(인터넷·설정값 확인)."; }
@@ -413,6 +426,7 @@ function viewSettings() {
     ? '<p class="small muted" style="margin:0">Firebase 콘솔의 웹 앱 설정값(<code>{ apiKey, authDomain, projectId, … }</code>)을 붙여 넣으면 로그인·동기화가 켜져요. 방법은 볼트의 「국시 퀘스트 웹 Firebase 설정」 문서를 보세요.</p><textarea id="fbConf" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder=\'{"apiKey":"…","authDomain":"….firebaseapp.com","projectId":"…","appId":"…"}\'></textarea><div class="row"><button class="btn primary" data-act="saveFb">Firebase 연결</button></div>'
     : (user ? '<p style="margin:0">☁️ 로그인: <b>' + esc(user.email || "Google 계정") + '</b></p><p class="small" style="margin:0">' + esc(cloudStat || "") + '</p><div class="row"><button class="btn primary" data-act="cloudCheck">계정 저장 시험 · 카드 올리기</button><button class="btn" data-act="signOut">로그아웃</button></div>'
       : '<div class="row"><button class="btn primary" data-act="google">Google로 로그인</button></div><p class="small muted" style="margin:0">구글 로그인이 안 되면 이메일로:</p><input type="email" id="em" placeholder="이메일" autocomplete="username"><input type="password" id="pw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password"><div class="row"><button class="btn" data-act="emailIn">로그인</button><button class="btn ghost" data-act="emailUp">처음이면 가입</button></div>') +
+      '<div class="gb"><h3>📲 다른 앱·기기로 옮기기</h3><p class="small muted" style="margin:4px 0 6px">새 앱(Dock·홈 화면)이나 핸드폰은 저장 공간이 따로라 처음 한 번 설정이 필요해요. 아래로 설정값을 옮기고 <b>로그인만</b> 하면 Gemini 키·카드·기록은 계정에서 따라와요.</p><div class="row"><button class="btn sm" data-act="copyConf">설정값 복사</button><button class="btn sm" data-act="copyLink">설정 링크 복사</button></div><p class="small muted" id="linkMsg" style="margin:4px 0 0"></p><textarea id="linkBox" class="hidden" readonly style="min-height:60px;font-family:var(--mono);font-size:11px;margin-top:6px"></textarea><p class="small muted" style="margin:6px 0 0">· 같은 맥의 새 앱: 「설정값 복사」 → 새 앱 설정 ☁️ 칸에 붙여 넣기<br>· 아이폰: 「설정 링크 복사」 → 아이폰 사파리에 링크 열기 → 공유 → 홈 화면에 추가</p></div>' +
       '<p class="small muted" style="margin:0">연결된 프로젝트: ' + esc((() => { try { const o = JSON.parse(cfg.firebase); return (o.projectId || "?") + " · apiKey …" + String(o.apiKey || "").slice(-4) + " (" + String(o.apiKey || "").length + "자)"; } catch (e) { return "?"; } })()) + '</p><details><summary class="small muted">Firebase 설정값 바꾸기</summary><div class="row" style="margin-top:6px"><button class="btn sm ghost" data-act="clearFb">Firebase 연결 끊기</button></div></details>';
   return '<section class="sheet"><h2>☁️ 계정·동기화 (Firebase)</h2>' + (authErr ? '<div class="notice">' + esc(authErr) + "</div>" : "") + fbBox + "</section>" +
     '<section class="sheet"><h2>✨ Gemini (채점·복습)</h2><p class="small muted" style="margin:0">Google AI Studio에서 받은 API 키를 <b>직접</b> 붙여 넣으세요. 이 기기에만 저장되고 어디에도 올라가지 않아요.</p>' +
@@ -470,7 +484,9 @@ document.addEventListener("click", async e => {
   if (a === "emailIn") return signInEmail(false);
   if (a === "emailUp") return signInEmail(true);
   if (a === "signOut") { try { await fb.auth().signOut(); } catch (x) {} user = null; localLoad(); render(); refreshEnv(); return; }
-  if (a === "saveKey") { const k = ($("#gkey") || {}).value.trim(); if (k) cfg.geminiKey = k; const m = ($("#gmodel") || {}).value; if (m) cfg.model = m; saveCfg(); $("#keyMsg").textContent = "저장했어요."; refreshEnv(); return; }
+  if (a === "saveKey") { const k = ($("#gkey") || {}).value.trim(); if (k) cfg.geminiKey = k; const m = ($("#gmodel") || {}).value; if (m) cfg.model = m; saveCfg(); $("#keyMsg").textContent = user ? "저장했어요. 내 계정에도 저장해서 다른 기기는 로그인만 하면 돼요." : "저장했어요(이 기기). 로그인하면 내 계정에도 저장돼요."; if (user) syncKey(); refreshEnv(); return; }
+  if (a === "copyLink") { const l = fbLink(); const box = $("#linkBox"); if (box) { box.value = l; box.classList.remove("hidden"); box.select(); } try { await navigator.clipboard.writeText(l); $("#linkMsg").textContent = "✅ 설정 링크를 복사했어요."; } catch (x) { $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
+  if (a === "copyConf") { try { await navigator.clipboard.writeText(cfg.firebase); $("#linkMsg").textContent = "✅ 설정값을 복사했어요. 새 앱의 ☁️ 칸에 붙여 넣으세요."; } catch (x) { const box = $("#linkBox"); if (box) { box.value = cfg.firebase; box.classList.remove("hidden"); box.select(); } $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
   if (a === "clearKey") { cfg.geminiKey = ""; saveCfg(); refreshEnv(); return render(); }
   if (a === "testKey") { const k = ($("#gkey") || {}).value.trim(); if (k) { cfg.geminiKey = k; saveCfg(); } $("#keyMsg").textContent = "시험 중…"; try { const r = await gemini('JSON만: {"ok":true,"msg":"연결됨"}', 20000); $("#keyMsg").textContent = r && r.ok ? "✅ Gemini 연결됨 (" + cfg.model + ")" : "답은 왔지만 모양이 달라요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } refreshEnv(); return; }
   if (a === "models") { const k = ($("#gkey") || {}).value.trim(); if (k) { cfg.geminiKey = k; saveCfg(); } try { const ms = await listModels(); const flash = ms.filter(m => /flash/.test(m) && !/image|tts|audio|live|embedding/.test(m)); const sel = $("#gmodel"); sel.innerHTML = (flash.length ? flash : ms).map(m => "<option" + (m === cfg.model ? " selected" : "") + ">" + esc(m) + "</option>").join(""); $("#keyMsg").textContent = "모델 " + (flash.length || ms.length) + "개 — 고른 뒤 「저장」을 누르세요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } return; }
