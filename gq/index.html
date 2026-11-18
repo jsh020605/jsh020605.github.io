@@ -110,8 +110,13 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 
 /* 설정: 이 기기에만 저장 (Gemini 키·Firebase 설정값은 GitHub에 올라가지 않는다) */
 const CFG_K = "gqw.cfg";
-let cfg = Object.assign({ geminiKey: "", model: "gemini-2.5-flash", firebase: "" }, lsGet(CFG_K, {}));
+let cfg = Object.assign({ geminiKeys: [], model: "gemini-2.5-flash", firebase: "" }, lsGet(CFG_K, {}));
+/* 예전 설정(키 1개 geminiKey) → 키 목록 geminiKeys 로 옮긴다 */
+if (!Array.isArray(cfg.geminiKeys)) cfg.geminiKeys = [];
+if (cfg.geminiKey) { if (!cfg.geminiKeys.includes(cfg.geminiKey)) cfg.geminiKeys.unshift(cfg.geminiKey); delete cfg.geminiKey; }
 const saveCfg = () => lsSet(CFG_K, cfg);
+/* GEMINI_API_KEYS: 설정에 넣은 키 목록 (코드·GitHub에는 키를 적지 않는다) */
+const GEMINI_API_KEYS = () => (cfg.geminiKeys || []).filter(Boolean);
 /* 설정 링크: …/gq/#fb=<Firebase 설정값> 으로 열면 자동으로 채운다(# 뒤는 서버로 안 감) */
 (function () { const m = location.hash.match(/^#fb=(.+)$/); if (!m) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/"))))); if (o.apiKey && o.projectId) { cfg.firebase = JSON.stringify(o); saveCfg(); } } catch (e) {} try { history.replaceState(null, "", location.pathname); } catch (e) {} })();
 const fbLink = () => location.origin + location.pathname + "#fb=" + btoa(unescape(encodeURIComponent(cfg.firebase))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -151,8 +156,9 @@ async function syncKey() {
   if (!user || !fdb) return;
   try {
     const d = await withTO(keyRef().get(), 12000), k = d.exists ? d.data() : {};
-    if (!cfg.geminiKey && k.geminiKey) { cfg.geminiKey = k.geminiKey; if (k.model) cfg.model = k.model; saveCfg(); }
-    else if (cfg.geminiKey && cfg.geminiKey !== k.geminiKey) await withTO(keyRef().set({ geminiKey: cfg.geminiKey, model: cfg.model, updated: today() }), 12000);
+    const remote = Array.isArray(k.geminiKeys) ? k.geminiKeys.filter(Boolean) : (k.geminiKey ? [k.geminiKey] : []), ks = GEMINI_API_KEYS();
+    if (!ks.length && remote.length) { cfg.geminiKeys = remote.slice(); if (k.model) cfg.model = k.model; saveCfg(); }
+    else if (ks.length && ks.join("\n") !== remote.join("\n")) await withTO(keyRef().set({ geminiKeys: ks, geminiKey: ks[0], model: cfg.model, updated: today() }), 12000);
   } catch (e) {}
   refreshEnv(); if (tab === "settings") render();
 }
@@ -209,25 +215,85 @@ const due = () => S.cards.filter(c => (c.nextReview || "0") <= today()).sort((a,
 const todayStudy = () => { const t0 = today(); return S.cards.map(c => ({ c, h: (c.history || []).filter(x => x.date === t0).slice(-1)[0] })).filter(x => x.h); };
 
 /* ============ Gemini ============ */
-async function gemini(prompt, timeoutMs = 45000) {
-  if (window.__fakeGemini) return window.__fakeGemini(prompt);
-  if (!cfg.geminiKey) throw { code: "nokey" };
+/* 키 로테이션(Round-Robin) + 지연 재시도
+   - 부를 때마다 다음 키로 돌아가며 쓴다.
+   - 429(사용량 초과): 그 키를 잠시 쉬게 하고 기다림 없이 바로 다음 키로.
+   - 500·502·503·504(서버 붐빔): 2초·4초·6초 기다렸다가 다음 키로 다시 (최대 3번).
+   - 모든 키가 쉬는 중: 가장 빨리 풀리는 키를 기다렸다가 다시 (최대 3번, 20초 넘게 기다려야 하면 바로 안내).
+   - 키가 틀림(403 등): 그 키는 이번에 빼고 다음 키로. */
+const RETRY = { maxRetries: 3, delayMs: 2000, maxWaitMs: 20000 };
+const keyCool = {};          // 키 → 다시 써도 되는 시각(ms). Infinity = 틀린 키
+let keyTurn = 0;             // 라운드 로빈 차례
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function nextGeminiKey() {
+  const ks = GEMINI_API_KEYS(), now = Date.now();
+  for (let i = 0; i < ks.length; i++) { const n = (keyTurn + i) % ks.length; if ((keyCool[ks[n]] || 0) <= now) { keyTurn = (n + 1) % ks.length; return ks[n]; } }
+  return null;
+}
+/* 키 1개로 한 번 부르기 */
+async function geminiCall(key, prompt, timeoutMs) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(cfg.model || "gemini-2.5-flash") + ":generateContent", {
-      method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.geminiKey },
+      method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.3 } })
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw { code: r.status === 429 ? "rate" : r.status === 404 ? "model" : (r.status === 400 || r.status === 403) ? "key" : "http", msg: (j.error && j.error.message) || r.status };
+    if (!r.ok) {
+      const msg = (j.error && j.error.message) || r.status, s = r.status;
+      if (s === 429) {
+        const info = ((j.error && j.error.details) || []).find(d => d && d.retryDelay), sec = info ? parseFloat(info.retryDelay) : NaN;
+        throw { code: "rate", msg, waitMs: isFinite(sec) ? sec * 1000 : 0, daily: /PerDay|per day/i.test(JSON.stringify(j.error || {})) };
+      }
+      if (s === 500 || s === 502 || s === 503 || s === 504) throw { code: "busy", msg };
+      if (s === 404) throw { code: "model", msg };
+      if (s === 401 || s === 403 || (s === 400 && /api.?key/i.test(String(msg)))) throw { code: "key", msg };
+      throw { code: "http", msg };
+    }
     const txt = ((j.candidates || [])[0] || {}).content ? j.candidates[0].content.parts.map(p => p.text || "").join("") : "";
     return JSON.parse(txt.replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/, ""));
   } catch (e) { if (e && e.name === "AbortError") throw { code: "timeout" }; if (e instanceof SyntaxError) throw { code: "json" }; throw e; }
   finally { clearTimeout(t); }
 }
-const gErr = e => ({ nokey: "설정에서 Gemini API 키를 넣어 주세요.", key: "Gemini 키가 틀렸거나 막혀 있어요(설정 → 연결 시험).", model: "Gemini 모델 이름을 확인해 주세요(설정 → 모델 목록 불러오기).", rate: "Gemini 사용량이 많아요. 잠시 뒤 다시 눌러 주세요.", timeout: "Gemini 답이 늦어요. 다시 눌러 주세요.", json: "Gemini 답을 읽지 못했어요. 다시 눌러 주세요." })[e && e.code] || ("Gemini 오류: " + ((e && (e.msg || e.message)) || "알 수 없음"));
+/* 채점·복습이 부르는 함수: onWait(문구)로 「잠시 기다리는 중」을 화면에 보여 줄 수 있다 */
+async function gemini(prompt, timeoutMs = 45000, onWait) {
+  if (window.__fakeGemini) return window.__fakeGemini(prompt);
+  if (!GEMINI_API_KEYS().length) throw { code: "nokey" };
+  let retries = 0, lastErr = null;
+  while (true) {
+    const key = nextGeminiKey();
+    if (!key) {                                   // 모든 키가 쉬는 중이거나 틀림
+      const now = Date.now(), waits = GEMINI_API_KEYS().map(k => (keyCool[k] || 0) - now).filter(w => w > 0 && isFinite(w));
+      if (!waits.length) throw lastErr || { code: "key" };
+      const w = Math.max(Math.min(...waits), RETRY.delayMs);
+      if (retries >= RETRY.maxRetries || w > RETRY.maxWaitMs) throw Object.assign({}, lastErr || { code: "rate" }, { code: "rate", waitMs: Math.min(...waits) });
+      retries++; onWait && onWait("사용량이 많아 " + Math.ceil(w / 1000) + "초 기다렸다 다시 해요 (" + retries + "/" + RETRY.maxRetries + ")");
+      await sleep(w); continue;
+    }
+    try { return await geminiCall(key, prompt, timeoutMs); }
+    catch (e) {
+      lastErr = e;
+      if (e.code === "rate") { keyCool[key] = Date.now() + (e.daily ? 3600000 : Math.max(e.waitMs || 0, RETRY.delayMs)); continue; }   // 다음 키로 바로
+      if (e.code === "key") { keyCool[key] = Infinity; continue; }                                                                     // 틀린 키는 빼고 다음 키로
+      if (e.code === "busy" && retries < RETRY.maxRetries) {
+        retries++; const w = RETRY.delayMs * retries;
+        onWait && onWait("Gemini 서버가 붐벼 " + (w / 1000) + "초 뒤 다시 해요 (" + retries + "/" + RETRY.maxRetries + ")");
+        await sleep(w); continue;
+      }
+      throw e;                                    // 모델 이름·시간 초과·답 모양 오류는 바로 안내
+    }
+  }
+}
+const gErr = e => ({ nokey: "설정에서 Gemini API 키를 넣어 주세요.", key: "Gemini 키가 틀렸거나 막혀 있어요(설정 → 연결 시험).", model: "Gemini 모델 이름을 확인해 주세요(설정 → 모델 목록 불러오기).", rate: "Gemini 사용량이 다 찼어요(키 " + GEMINI_API_KEYS().length + "개 모두). " + (e && e.daily ? "오늘 사용량이 끝났을 수 있어요. 키를 더 넣거나 내일 다시 해 주세요." : (e && e.waitMs > 0 ? "약 " + Math.ceil(e.waitMs / 1000) + "초 뒤 다시 눌러 주세요." : "잠시 뒤 다시 눌러 주세요.")), busy: "Gemini 서버가 붐벼요. 잠시 뒤 다시 눌러 주세요.", timeout: "Gemini 답이 늦어요. 다시 눌러 주세요.", json: "Gemini 답을 읽지 못했어요. 다시 눌러 주세요." })[e && e.code] || ("Gemini 오류: " + ((e && (e.msg || e.message)) || "알 수 없음"));
+/* 붙여 넣은 키(쉼표·띄어쓰기·줄바꿈으로 여러 개)를 목록에 더한다. 같은 키는 한 번만 */
+function addKeys(raw) {
+  const add = String(raw || "").split(/[\s,;]+/).map(x => x.trim()).filter(x => x.length >= 20);
+  if (!add.length) return 0;
+  add.forEach(k => { if (!cfg.geminiKeys.includes(k)) cfg.geminiKeys.push(k); delete keyCool[k]; });
+  saveCfg(); return add.length;
+}
 async function listModels() {
-  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": cfg.geminiKey } });
+  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": GEMINI_API_KEYS()[0] || "" } });
   const j = await r.json(); if (!r.ok) throw { code: "key", msg: j.error && j.error.message };
   return (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")).map(m => m.name.replace(/^models\//, ""));
 }
@@ -267,7 +333,7 @@ function renderHeader() {
 }
 function refreshEnv() {
   const where = user ? "☁️ 내 계정(" + (user.email || "Google") + ")" : (fb ? "📱 이 기기만 — 설정에서 로그인하면 핸드폰·맥이 같은 기록" : "📱 이 기기만 — 설정에서 Firebase를 연결하세요");
-  $("#env").textContent = "저장: " + where + " · 이 기기 카드 " + S.cards.length + "장" + (pending ? " · 보내는 중 " + pending : "") + (cloudStat ? " · " + cloudStat : "") + " · 채점: " + (cfg.geminiKey ? "Gemini" : "키 없음");
+  $("#env").textContent = "저장: " + where + " · 이 기기 카드 " + S.cards.length + "장" + (pending ? " · 보내는 중 " + pending : "") + (cloudStat ? " · " + cloudStat : "") + " · 채점: " + (GEMINI_API_KEYS().length ? "Gemini 키 " + GEMINI_API_KEYS().length + "개" : "키 없음");
 }
 function setTab(t) { tab = t; run = null; rev = null; document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); render(); window.scrollTo(0, 0); }
 function render() {
@@ -336,7 +402,7 @@ function viewRun() {
         block("✅ 맞았어요", g.good, "ok") + block("❗ 안 말한 부분 (설명)", g.missing, "warn") + block("✖ 틀리게 말한 부분 (바로잡기)", g.wrong, "no") + (g.better ? '<div class="gb"><h3>이렇게 말하면 더 좋아요</h3><p class="small" style="margin:4px 0 0">' + esc(g.better) + "</p></div>" : "") +
         '<div class="row"><button class="btn omr" data-act="finish">카드 끝내기 → 홈</button><button class="btn ghost" data-act="regrade">다시 채점</button></div>';
     } else {
-      h += '<div class="row"><button class="btn omr" data-act="grade"' + (run.busy ? " disabled" : "") + ">" + (run.busy ? "Gemini가 채점하는 중…" : "✅ 채점 받기") + '</button><button class="btn" data-act="finish">카드 끝내기 (채점 없이)</button></div>';
+      h += '<div class="row"><button class="btn omr" data-act="grade"' + (run.busy ? " disabled" : "") + ">" + (run.busy ? esc(run.busyMsg || "Gemini가 채점하는 중…") : "✅ 채점 받기") + '</button><button class="btn" data-act="finish">카드 끝내기 (채점 없이)</button></div>';
     }
     if (run.err) h += '<div class="notice">' + esc(run.err) + "</div>";
   }
@@ -353,14 +419,14 @@ function gradeSpeech(g) {
 async function grade() {
   const t = $("#explainIn"); run.explain = t ? t.value.trim() : run.explain;
   if (!run.explain) { run.err = "먼저 말하거나 써 주세요."; return render(); }
-  unlockSpeech(); stopVoice(); run.busy = true; run.err = ""; render();
+  unlockSpeech(); stopVoice(); run.busy = true; run.busyMsg = ""; run.err = ""; render();
   const c = run.card;
   const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 우리말 용어로 말해도 인정한다. 한국어로.\n\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
     "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 소리 내어 읽어 줄 총평 1~2문장(존댓말). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
     'JSON만: {"score":0~100 정수,"summary":"","good":[{"point":"","why":""}],"missing":[{"point":"","explain":""}],"wrong":[{"said":"","fix":""}],"better":""}';
-  try { run.grade = await gemini(prompt); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
+  try { run.grade = await gemini(prompt, 45000, m => { run.busyMsg = m; render(); }); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
   catch (e) { run.err = gErr(e); }
-  run.busy = false; render();
+  run.busy = false; run.busyMsg = ""; render();
 }
 const asArr = v => Array.isArray(v) ? v : (v ? [v] : []);
 function buildEntry() {
@@ -399,13 +465,13 @@ async function reviewStart() {
   rev = { items: [], i: 0, right: 0, busy: true, err: "", done: false }; render(); window.scrollTo(0, 0);
   const data = pool.map(({ c, r }) => ({ topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), wrongQuestions: asArr(r.wrongQs).map(w => ({ q: w.q, studentPicked: w.mine, correct: w.right, why: w.why })), missedInExplanation: asArr(r.missed), wronglySaid: asArr(r.wrongSaid) }));
   const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장.\n틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
-  try { const arr = await gemini(prompt, 60000); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
+  try { const arr = await gemini(prompt, 60000, m => { rev.busyMsg = m; render(); }); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
   if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
   rev.busy = false; render();
 }
 function viewReview() {
-  if (rev.busy) return '<section class="sheet"><h2>🔁 복습 세션 준비 중…</h2><p class="small muted">Gemini가 카드별 요약과 새 문제를 만들고 있어요. (20~40초)</p></section>';
+  if (rev.busy) return '<section class="sheet"><h2>🔁 복습 세션 준비 중…</h2>' + (rev.busyMsg ? '<p class="small">' + esc(rev.busyMsg) + "</p>" : "") + '<p class="small muted">Gemini가 카드별 요약과 새 문제를 만들고 있어요. (20~40초)</p></section>';
   if (rev.done || !rev.items.length) return '<section class="sheet"><div class="gate"><div class="big">🔁 복습 끝!</div><div class="sub">' + rev.right + " / " + rev.items.length + ' 맞음</div><button class="btn omr" data-act="revExit">🏠 홈으로</button></div></section>';
   const it = rev.items[rev.i];
   return '<section class="sheet"><div class="row" style="justify-content:space-between"><span class="chip">' + (rev.i + 1) + " / " + rev.items.length + '</span><button class="btn ghost" data-act="revExit">나가기</button></div>' + (rev.err ? '<div class="notice">' + esc(rev.err) + "</div>" : "") + "<h2>" + esc(it.topic) + '</h2><div class="gb ok"><h3>📌 핵심 요약</h3><p class="small" style="margin:4px 0 0;white-space:pre-wrap">' + esc(it.summary) + '</p></div><div class="q"><p>' + esc(it.q) + '</p><div class="opts">' +
@@ -430,9 +496,11 @@ function viewSettings() {
       '<p class="small muted" style="margin:0">연결된 프로젝트: ' + esc((() => { try { const o = JSON.parse(cfg.firebase); return (o.projectId || "?") + " · apiKey …" + String(o.apiKey || "").slice(-4) + " (" + String(o.apiKey || "").length + "자)"; } catch (e) { return "?"; } })()) + '</p><details><summary class="small muted">Firebase 설정값 바꾸기</summary><div class="row" style="margin-top:6px"><button class="btn sm ghost" data-act="clearFb">Firebase 연결 끊기</button></div></details>';
   return '<section class="sheet"><h2>☁️ 계정·동기화 (Firebase)</h2>' + (authErr ? '<div class="notice">' + esc(authErr) + "</div>" : "") + fbBox + "</section>" +
     '<section class="sheet"><h2>✨ Gemini (채점·복습)</h2><p class="small muted" style="margin:0">Google AI Studio에서 받은 API 키를 <b>직접</b> 붙여 넣으세요. 이 기기에만 저장되고 어디에도 올라가지 않아요.</p>' +
-    '<input type="password" id="gkey" placeholder="' + (cfg.geminiKey ? "저장됨 (바꾸려면 새 키 붙여 넣기)" : "Gemini API 키") + '" autocomplete="off">' +
+    '<p class="small muted" style="margin:0">키를 여러 개 넣으면 돌아가며 쓰고, 사용량이 찬 키는 건너뛰어요. <b>같은 Google Cloud 프로젝트의 키는 사용량을 같이 써서</b> 여러 개 넣어도 효과가 없어요.</p>' +
+    (GEMINI_API_KEYS().length ? '<div class="small" style="margin:0">' + GEMINI_API_KEYS().map((k, i) => '<div class="row" style="gap:6px;align-items:center">' + (i + 1) + '. <code>…' + esc(k.slice(-4)) + '</code> <button class="btn sm ghost" data-act="delKey" data-id="' + i + '">빼기</button></div>').join("") + "</div>" : "") +
+    '<input type="password" id="gkey" placeholder="' + (GEMINI_API_KEYS().length ? "키 " + GEMINI_API_KEYS().length + "개 저장됨 · 더 넣으려면 붙여 넣기" : "Gemini API 키 (여러 개면 쉼표·줄바꿈으로)") + '" autocomplete="off">' +
     '<label class="f">모델<select id="gmodel"><option>' + esc(cfg.model) + "</option></select></label>" +
-    '<div class="row"><button class="btn primary" data-act="saveKey">저장</button><button class="btn" data-act="testKey">연결 시험</button><button class="btn" data-act="models">모델 목록 불러오기</button>' + (cfg.geminiKey ? '<button class="btn ghost" data-act="clearKey">키 지우기</button>' : "") + '</div><p class="small muted" id="keyMsg" style="margin:0"></p></section>' +
+    '<div class="row"><button class="btn primary" data-act="saveKey">저장</button><button class="btn" data-act="testKey">연결 시험</button><button class="btn" data-act="models">모델 목록 불러오기</button>' + (GEMINI_API_KEYS().length ? '<button class="btn ghost" data-act="clearKey">키 모두 지우기</button>' : "") + '</div><p class="small muted" id="keyMsg" style="margin:0"></p></section>' +
     '<section class="sheet"><h2>📥 카드 가져오기</h2><p class="small muted" style="margin:0">Claude가 볼트 <code>3. 수업/국시 퀘스트 앱/카드 내보내기/</code>에 만든 JSON 파일을 고르세요. 같은 카드는 내용만 바뀌고 공부 기록은 그대로예요.</p><input type="file" id="cardFile" accept=".json,application/json"><textarea id="cardPaste" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder="또는 붙여 넣기로 가져오기: Gemini가 준 {&quot;cards&quot;:[ … ]} 를 여기에 붙여 넣기"></textarea><div class="row"><button class="btn primary" data-act="importCards">가져오기</button></div><p class="small muted" id="impMsg" style="margin:0"></p></section>' +
     '<section class="sheet"><h2>⚙️ 하루 할당량</h2><label class="f">하루 카드 수<input type="number" id="quota" min="1" max="60" value="' + S.settings.quotaCards + '"></label><div class="row"><button class="btn" data-act="saveQuota">저장</button><button class="btn ghost" data-act="exportAll">기록 내보내기(JSON)</button></div></section>';
 }
@@ -484,12 +552,13 @@ document.addEventListener("click", async e => {
   if (a === "emailIn") return signInEmail(false);
   if (a === "emailUp") return signInEmail(true);
   if (a === "signOut") { try { await fb.auth().signOut(); } catch (x) {} user = null; localLoad(); render(); refreshEnv(); return; }
-  if (a === "saveKey") { const k = ($("#gkey") || {}).value.trim(); if (k) cfg.geminiKey = k; const m = ($("#gmodel") || {}).value; if (m) cfg.model = m; saveCfg(); $("#keyMsg").textContent = user ? "저장했어요. 내 계정에도 저장해서 다른 기기는 로그인만 하면 돼요." : "저장했어요(이 기기). 로그인하면 내 계정에도 저장돼요."; if (user) syncKey(); refreshEnv(); return; }
+  if (a === "saveKey") { addKeys(($("#gkey") || {}).value); const m = ($("#gmodel") || {}).value; if (m) cfg.model = m; saveCfg(); $("#keyMsg").textContent = user ? "저장했어요. 내 계정에도 저장해서 다른 기기는 로그인만 하면 돼요." : "저장했어요(이 기기). 로그인하면 내 계정에도 저장돼요."; if (user) syncKey(); refreshEnv(); const msg = $("#keyMsg").textContent; render(); if ($("#keyMsg")) $("#keyMsg").textContent = msg; return; }
   if (a === "copyLink") { const l = fbLink(); const box = $("#linkBox"); if (box) { box.value = l; box.classList.remove("hidden"); box.select(); } try { await navigator.clipboard.writeText(l); $("#linkMsg").textContent = "✅ 설정 링크를 복사했어요."; } catch (x) { $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
   if (a === "copyConf") { try { await navigator.clipboard.writeText(cfg.firebase); $("#linkMsg").textContent = "✅ 설정값을 복사했어요. 새 앱의 ☁️ 칸에 붙여 넣으세요."; } catch (x) { const box = $("#linkBox"); if (box) { box.value = cfg.firebase; box.classList.remove("hidden"); box.select(); } $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
-  if (a === "clearKey") { cfg.geminiKey = ""; saveCfg(); refreshEnv(); return render(); }
-  if (a === "testKey") { const k = ($("#gkey") || {}).value.trim(); if (k) { cfg.geminiKey = k; saveCfg(); } $("#keyMsg").textContent = "시험 중…"; try { const r = await gemini('JSON만: {"ok":true,"msg":"연결됨"}', 20000); $("#keyMsg").textContent = r && r.ok ? "✅ Gemini 연결됨 (" + cfg.model + ")" : "답은 왔지만 모양이 달라요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } refreshEnv(); return; }
-  if (a === "models") { const k = ($("#gkey") || {}).value.trim(); if (k) { cfg.geminiKey = k; saveCfg(); } try { const ms = await listModels(); const flash = ms.filter(m => /flash/.test(m) && !/image|tts|audio|live|embedding/.test(m)); const sel = $("#gmodel"); sel.innerHTML = (flash.length ? flash : ms).map(m => "<option" + (m === cfg.model ? " selected" : "") + ">" + esc(m) + "</option>").join(""); $("#keyMsg").textContent = "모델 " + (flash.length || ms.length) + "개 — 고른 뒤 「저장」을 누르세요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } return; }
+  if (a === "clearKey") { cfg.geminiKeys = []; saveCfg(); refreshEnv(); return render(); }
+  if (a === "delKey") { cfg.geminiKeys.splice(+id, 1); saveCfg(); if (user) syncKey(); refreshEnv(); return render(); }
+  if (a === "testKey") { addKeys(($("#gkey") || {}).value); const ks = GEMINI_API_KEYS(); if (!ks.length) { $("#keyMsg").textContent = gErr({ code: "nokey" }); return; } $("#keyMsg").textContent = "시험 중…"; const out = []; for (let i = 0; i < ks.length; i++) { try { const r = await geminiCall(ks[i], 'JSON만: {"ok":true}', 20000); out.push((i + 1) + "번 " + (r && r.ok ? "✅" : "⚠ 모양 다름")); delete keyCool[ks[i]]; } catch (x) { out.push((i + 1) + "번 " + ({ rate: "⏳ 사용량 참", key: "❌ 틀린 키", model: "❌ 모델 이름", busy: "⏳ 서버 붐빔" }[x && x.code] || "❌ " + ((x && (x.msg || x.code)) || "오류"))); } } $("#keyMsg").textContent = out.join(" · ") + " (" + cfg.model + ")"; refreshEnv(); return; }
+  if (a === "models") { addKeys(($("#gkey") || {}).value); try { const ms = await listModels(); const flash = ms.filter(m => /flash/.test(m) && !/image|tts|audio|live|embedding/.test(m)); const sel = $("#gmodel"); sel.innerHTML = (flash.length ? flash : ms).map(m => "<option" + (m === cfg.model ? " selected" : "") + ">" + esc(m) + "</option>").join(""); $("#keyMsg").textContent = "모델 " + (flash.length || ms.length) + "개 — 고른 뒤 「저장」을 누르세요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } return; }
   if (a === "importCards") return importCards();
   if (a === "saveQuota") { S.settings.quotaCards = Math.max(1, Math.min(60, parseInt($("#quota").value, 10) || 15)); cloudPut("user", "", { settings: S.settings }); renderHeader(); return render(); }
   if (a === "exportAll") { const blob = new Blob([JSON.stringify({ exported: today(), cards: S.cards, days: S.days }, null, 1)], { type: "application/json" }); const u = URL.createObjectURL(blob); const l = document.createElement("a"); l.href = u; l.download = "국시퀘스트_기록_" + today() + ".json"; l.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); return; }
