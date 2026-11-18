@@ -62,7 +62,7 @@ ul.jobs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
 <body>
 <div class="page">
   <nav class="appnav"><a href="../">🏠 JO</a><span aria-current="page">📅 JO Calendar</span><a href="../gq/">📚 국시 퀘스트</a><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
-  <header class="top"><div class="brand"><h1>JO Calendar</h1><span id="chips" class="row"></span></div><div class="row"><span class="small muted" id="wk"></span><a class="btn sm" href="#jobsCard">💼 채용 공고</a><button class="btn sm" data-act="refresh">새로고침</button></div></header>
+  <header class="top"><div class="brand"><h1>JO Calendar</h1><span id="chips" class="row" style="flex-wrap:wrap"></span></div><div class="row"><span class="small muted" id="wk"></span><a class="btn sm" href="#jobsCard">💼 채용 공고</a><button class="btn sm" data-act="refresh">새로고침</button></div></header>
   <div id="connect" class="card hidden"></div>
   <div class="grid" id="main">
     <div class="col">
@@ -98,7 +98,7 @@ const addDays = (s, n) => { const d = new Date(s + "T00:00:00"); d.setDate(d.get
 const diff = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
 const dow = s => "일월화수목금토"[new Date(s + "T00:00:00").getDay()], md = s => s ? (+s.slice(5, 7)) + "/" + (+s.slice(8, 10)) : "";
 const monday = s => { const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return fmt(d); };
-const EXAM = "2026-12-13", W0 = monday(today()), W6 = addDays(W0, 6);
+const EXAM = "2026-12-13", FINALS = [["2026-11-30", "법규", "의료관계법규 기말"], ["2026-12-08", "임상·ADL", "임상의사결정·ADL 기말"], ["2026-12-17", "스포츠·마사지", "스포츠손상·치료적 마사지 기말"]], W0 = monday(today()), W6 = addDays(W0, 6);
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 /* 같은 사이트의 국시 퀘스트와 Firebase 설정·로그인을 같이 쓴다. 저장: users/{uid}/calTasks/{id} */
@@ -165,7 +165,8 @@ function li(t) {
 function rank(list) { return [0, 1].map(i => list[i] ? '<li><span class="n">' + (i + 1) + '</span><span class="t" title="' + esc(list[i].title) + '">' + esc(list[i].title) + '</span><span class="small muted">' + (list[i].due ? "~" + md(list[i].due) : "") + "</span></li>" : '<li class="small muted"><span class="n">' + (i + 1) + "</span>—</li>").join(""); }
 function render() {
   const t0 = today(), n = diff(t0, EXAM), toeic = lsGet("jo.toeic", "");
-  $("#chips").innerHTML = '<span class="chip' + (n <= 14 ? " red" : "") + '">국시 D-' + n + "</span>" + (toeic ? '<span class="chip">토익 D-' + diff(t0, toeic) + "</span>" : "");
+  $("#chips").innerHTML = (n >= 0 ? '<span class="chip' + (n <= 14 ? " red" : "") + '">국시 ' + (n ? "D-" + n : "D-DAY") + "</span>" : "") + (toeic && toeic >= t0 ? '<span class="chip">토익 ' + (toeic > t0 ? "D-" + diff(t0, toeic) : "D-DAY") + "</span>" : "") +
+    FINALS.filter(f => f[0] >= t0).map(f => { const k = diff(t0, f[0]); return '<span class="chip' + (k <= 7 ? " red" : "") + '" title="' + f[2] + " " + md(f[0]) + '">' + f[1] + " " + (k ? "D-" + k : "D-DAY") + "</span>"; }).join("");
   $("#wk").textContent = "이번 주 " + md(W0) + "~" + md(W6) + " · 오늘 " + md(t0) + "(" + dow(t0) + ")";
   const c = $("#connect");
   if (!user) { c.classList.remove("hidden"); c.innerHTML = '<p class="small" style="margin:0">' + (cfg.firebase ? "로그인하면 핸드폰·맥이 같은 할 일을 봐요. 국시 퀘스트 설정에서 로그인한 계정을 같이 써요." : "국시 퀘스트 설정에서 Firebase 연결·로그인을 먼저 해 주세요(같은 설정을 써요).") + ' <a href="../gq/">국시 퀘스트 설정 열기 →</a></p>' + (err ? '<div class="err">' + esc(err) + "</div>" : ""); }
@@ -185,7 +186,7 @@ function renderCal() {
   for (let i = 0; i < 42; i++) {
     const d = addDays(start, i), dd = new Date(d + "T00:00:00"); if (i >= 35 && dd.getMonth() !== m - 1) break;
     const ts = T.filter(t => (t.day || t.due) === d).sort(byP);
-    h += '<div class="d' + (dd.getMonth() !== m - 1 ? " out" : "") + (d === t0 ? " today" : "") + (dd.getDay() === 0 ? " sun" : "") + '" data-act="day" data-id="' + d + '"><span class="num">' + dd.getDate() + "</span>" + (d === EXAM ? '<span class="e big">🎯 국시</span>' : "") +
+    h += '<div class="d' + (dd.getMonth() !== m - 1 ? " out" : "") + (d === t0 ? " today" : "") + (dd.getDay() === 0 ? " sun" : "") + '" data-act="day" data-id="' + d + '"><span class="num">' + dd.getDate() + "</span>" + (d === EXAM && d >= t0 ? '<span class="e big">🎯 국시</span>' : "") + FINALS.filter(f => f[0] === d && d >= t0).map(f => '<span class="e big" title="' + f[2] + '">📝 ' + f[1] + "</span>").join("") +
       ts.slice(0, 3).map(t => '<span class="e task' + (t.done ? " done" : "") + '" title="' + esc(t.title) + '">' + esc(t.title) + "</span>").join("") + (ts.length > 3 ? '<span class="small muted">+' + (ts.length - 3) + "</span>" : "") + "</div>";
   }
   $("#month").innerHTML = h; $("#calNote").textContent = "날짜를 누르면 그날 할 일을 보고 추가할 수 있어요.";
@@ -193,7 +194,7 @@ function renderCal() {
 let dlgDay = "";
 function openDay(d) {
   dlgDay = d; const ts = T.filter(t => (t.day || t.due) === d).sort(byP);
-  $("#dTitle").textContent = md(d) + " (" + dow(d) + ")" + (d === today() ? " · 오늘" : "") + (d === EXAM ? " · 🎯 국시" : "");
+  $("#dTitle").textContent = md(d) + " (" + dow(d) + ")" + (d === today() ? " · 오늘" : "") + (d === EXAM ? " · 🎯 국시" : "") + FINALS.filter(f => f[0] === d).map(f => " · 📝 " + f[2]).join("");
   $("#dBody").innerHTML = (ts.length ? '<ul class="tasks">' + ts.map(li).join("") + "</ul>" : '<p class="small muted" style="margin:0">이날 할 일이 없어요.</p>') + '<div class="row"><input id="dNew" placeholder="이날 할 일 추가" style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"><button class="btn sm primary" data-act="dAdd">추가</button></div>';
   if (!$("#dlg").open) $("#dlg").showModal();
 }

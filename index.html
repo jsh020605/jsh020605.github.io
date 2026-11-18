@@ -3,571 +3,130 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#1f3a5f">
+<title>JO</title>
+<meta name="description" content="JO — 일정·국시·토익 바로가기">
+<meta name="theme-color" content="#2f4b8a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="국시">
-<title>국시 퀘스트</title>
-<link rel="apple-touch-icon" href="../icon-180.png">
-<link rel="icon" type="image/png" href="../icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JO">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
 <style>
+/* JO 입구: 위 = D-day, 가운데 = 앱 세 개(큰 버튼), 아래 = 이번 주 국시 목표. 앱 기록은 claude.ai 계정에 있고 이 페이지는 바로가기만 한다 */
 :root{
-  --paper:#f7f5ef; --sheet:#ffffff; --ink:#1d2733; --muted:#5d6875; --line:#e3e0d6;
-  --navy:#1f3a5f; --omr:#d9480f; --omr-soft:#fde8dc; --ok:#2b8a3e; --ok-soft:#e3f4e6; --warn:#b35c00; --warn-soft:#fff1dc; --no:#c92a2a; --no-soft:#fde2e2;
-  --f:"Apple SD Gothic Neo","Noto Sans KR",system-ui,-apple-system,sans-serif; --mono:ui-monospace,"SF Mono",Menlo,monospace; --r:14px;
+  --bg:#f6f7f4; --card:#fff; --ink:#1e2a3a; --muted:#5f6b78; --line:#e2e5e0; --blue:#2f4b8a; --soft:#e6eefc; --hl:#fff1a8; --hl-ink:#7a5a00; --red:#c2410c;
+  --a1:#2f4b8a; --a2:#d9486f; --a3:#0f766e;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif; --f-display:"Do Hyeon","IBM Plex Sans KR",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){:root{
-  --paper:#13161b; --sheet:#1b2028; --ink:#e6e9ee; --muted:#9aa4b0; --line:#2b313b; --navy:#9db4ea; --omr:#ff8a50; --omr-soft:#3a2418; --ok:#5cc495; --ok-soft:#18301f; --warn:#e3a05a; --warn-soft:#3a2c15; --no:#ff8080; --no-soft:#3a1a1a; color-scheme:dark}}
+  --bg:#13161b; --card:#1b2028; --ink:#e6e9ee; --muted:#9aa4b0; --line:#2b313b; --blue:#9db4ea; --soft:#1f2b45; --hl:#4a3f12; --hl-ink:#f3d35a; --red:#fb8a5a;
+  --a1:#9db4ea; --a2:#f06a8f; --a3:#4fd1c0; color-scheme:dark}}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;
-  padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
-.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-h1,h2,h3{margin:0;line-height:1.3} h2{font-size:17px} h3{font-size:14px}
-button,input,textarea,select{font:inherit;color:inherit}
-button{cursor:pointer}
-a{color:var(--navy)}
-.appnav{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
-.appnav a,.appnav span{padding:4px 12px;border-radius:99px;border:1px solid var(--line);text-decoration:none;color:var(--muted);white-space:nowrap}
-.appnav a:hover{color:var(--ink);border-color:var(--navy)}
-.appnav span[aria-current]{background:var(--navy);border-color:var(--navy);color:var(--sheet);font-weight:600}
-.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.brand b{font-size:24px;color:var(--navy);letter-spacing:.3px} .brand small{color:var(--muted);font-size:12px;margin-left:6px}
-.fire{font-family:var(--mono);font-weight:700;color:var(--omr);font-size:18px}
-nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
-nav.tabs button{background:none;border:0;padding:8px 12px;border-bottom:2px solid transparent;color:var(--muted);font-weight:600;white-space:nowrap}
-nav.tabs button[aria-current="true"]{color:var(--ink);border-color:var(--omr)}
-.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.muted{color:var(--muted)} .small{font-size:13px}
-.btn{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:9px 14px;font-weight:600}
-.btn.primary{background:var(--navy);border-color:var(--navy);color:var(--sheet)}
-.btn.omr{background:var(--omr);border-color:var(--omr);color:#fff}
-.btn.ghost{background:transparent} .btn.sm{padding:4px 10px;font-size:13px}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
-.btn.mic[aria-pressed="true"]{background:var(--omr);border-color:var(--omr);color:#fff}
-.chip{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--omr-soft);color:var(--omr);font-weight:600}
-.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.mute{background:var(--line);color:var(--muted)}
-.notice{padding:10px 12px;border-radius:10px;font-size:13px;background:var(--warn-soft);color:var(--warn)}
-.notice.ok{background:var(--ok-soft);color:var(--ok);font-size:14px}
-input[type=text],input[type=password],input[type=email],input[type=number],select,textarea{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;color:var(--ink)}
-textarea{min-height:110px;resize:vertical;line-height:1.7}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
-ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-ul.list li{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
-ul.list .t{display:flex;flex-direction:column;min-width:0} ul.list .t b{overflow-wrap:anywhere}
-.pct{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1;color:var(--omr)} .pct.ok{color:var(--ok)}
-.bar{height:14px;border-radius:99px;background:var(--line);overflow:hidden} .bar i{display:block;height:100%;background:var(--omr);border-radius:99px;transition:width .6s} .bar.done i{background:var(--ok)}
-.steps{display:flex;gap:6px;flex-wrap:wrap}
-.steps span{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
-.steps span.on{border-color:var(--omr);color:var(--omr);font-weight:700} .steps span.past{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
-.concept{white-space:pre-wrap;line-height:1.85}
-.q p{margin:0 0 6px;font-weight:600}
-.opts{display:flex;flex-direction:column;gap:6px}
-.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:none;border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
-.opt .bub{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-size:12px;font-family:var(--mono)}
-.opt[aria-pressed="true"] .bub{background:var(--ink);color:var(--sheet)}
-.opt.right{background:var(--ok-soft);border-color:var(--ok)} .opt.right .bub{background:var(--ok);border-color:var(--ok);color:#fff}
-.opt.wrong{background:var(--no-soft);border-color:var(--no)} .opt.wrong .bub{background:var(--no);border-color:var(--no);color:#fff}
-.why{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin-top:6px}
-.score{font-family:var(--mono);font-size:36px;font-weight:700;color:var(--navy);line-height:1}
-.gb{border-radius:10px;padding:10px 12px;background:var(--paper)} .gb.ok{border-left:4px solid var(--ok)} .gb.warn{border-left:4px solid var(--warn)} .gb.no{border-left:4px solid var(--no)}
-.gb ul{margin:4px 0 0;padding-left:18px} .gb li{margin-bottom:6px} .gb .w{color:var(--muted)}
-.gate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:26px 8px}
-.gate .big{font-size:28px;font-weight:800;color:var(--navy)} .gate .sub{color:var(--muted);max-width:420px}
-.env{font-size:12px;color:var(--muted);text-align:center}
-.hidden{display:none!important}
-@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;min-height:100dvh;
+  padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.page{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.top h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:38px;line-height:1;color:var(--blue)}
+.top .d{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.dd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dd div{background:var(--soft);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.dd span{font-size:13px;color:var(--blue)} .dd b{font-family:var(--f-display);font-weight:400;font-size:36px;line-height:1;color:var(--blue)} .dd small{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dd .near b{color:var(--red)}
+.dd .fin{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 14px}
+.dd .fin em{font-style:normal;font-size:14px;color:var(--ink)} .dd .fin em.near{color:var(--red);font-weight:600} .dd .fin small{white-space:nowrap}
+.dd button{all:unset;cursor:pointer;font-size:12px;color:var(--muted);text-decoration:underline}
+.apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.app{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;border-top:6px solid var(--c);min-height:150px;transition:transform .12s}
+.app:hover{transform:translateY(-2px)} .app:active{transform:scale(.98)}
+.app .ic{font-size:30px;line-height:1} .app b{font-size:19px} .app span{font-size:13px;color:var(--muted)}
+.app .go{margin-top:auto;font-size:13px;font-weight:700;color:var(--c)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.card h2{margin:0;font-size:16px}
+.weeks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.weeks li{display:grid;grid-template-columns:96px 1fr;gap:8px;font-size:14px;padding:6px 8px;border-radius:8px}
+.weeks li small{font-family:var(--f-mono);color:var(--muted);font-size:12px}
+.weeks li.now{background:var(--hl);color:var(--hl-ink);font-weight:700} .weeks li.now small{color:var(--hl-ink)}
+.weeks li.past{opacity:.45}
+.foot{font-size:12px;color:var(--muted);margin:0}
+input[type=date]{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+@media (max-width:720px){.apps{grid-template-columns:1fr}.app{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 12px}.app span{flex-basis:100%}.app .go{margin:0 0 0 auto}}
+@media (prefers-reduced-motion: reduce){.app{transition:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../cal/#jobs">💼 채용 공고</a><span aria-current="page">📚 국시 퀘스트</span><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
-  <header class="top">
-    <div class="brand"><b>국시 퀘스트</b><small id="dday"></small></div>
-    <div class="row"><span class="fire" id="streak">0</span><span class="small muted">일 연속 🔥</span></div>
-  </header>
-  <nav class="tabs" id="tabs"><button data-tab="home" aria-current="true">오늘</button><button data-tab="cards">카드함</button><button data-tab="settings">설정</button></nav>
-  <main id="view" class="wrap"></main>
-  <p class="env" id="env"></p>
+<div class="page">
+  <header class="top"><h1>JO</h1><span class="d" id="today"></span></header>
+
+  <section class="dd" id="dd"></section>
+
+  <nav class="apps" aria-label="앱">
+    <a class="app" style="--c:var(--a1)" href="cal/"><span class="ic">🗓</span><b>JO Calendar</b><span>이번 주 할 일 · 말하는 공간 · 오늘 순위 · 한 달 달력</span><span class="go">열기 →</span></a>
+    <a class="app" style="--c:var(--a2)" href="gq/"><span class="ic">📚</span><b>국시 퀘스트</b><span>복습 카드 3장 + 공부 퀘스트 1개 · 🔥 연속 기록</span><span class="go">열기 →</span></a>
+    <a class="app" style="--c:var(--a1)" href="cal/#jobs"><span class="ic">💼</span><b>채용 공고</b><span>매일 저녁 업데이트 · 신입·경력무관 · 마감 임박 ⏰</span><span class="go">열기 →</span></a>
+    <a class="app" style="--c:var(--a3)" href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W"><span class="ic">🔤</span><b>TOEIC Daily</b><span>단어 30 · Part 5·6·7 한 문제씩 · 영어 회화</span><span class="go">열기 →</span></a>
+  </nav>
+
+  <section class="card" id="weekCard">
+    <h2>국시 4주 계획</h2>
+    <ul class="weeks" id="weeks"></ul>
+  </section>
+
+  <p class="foot">앱은 claude.ai에서 열리고, 기록은 내 Claude 계정에만 저장돼요. 이 페이지는 바로가기예요.</p>
 </div>
-
 <script>
-"use strict";
-/* ============ 기본 ============ */
-const $ = s => document.querySelector(s);
-const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const pad = n => String(n).padStart(2, "0");
-const fmt = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-const today = () => fmt(new Date());
-const addDays = (s, n) => { const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() + n); return fmt(d); };
-const diffDays = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000);
-const md = s => s ? (+s.slice(5, 7)) + "/" + (+s.slice(8, 10)) : "";
-const EXAM = "2026-12-13", INTERVALS = [1, 3, 7, 14, 30];
-const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+(function(){
+  var pad = function(n){ return String(n).padStart(2, "0"); };
+  var fmt = function(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  var t0 = fmt(new Date()), DOW = ["일","월","화","수","목","금","토"];
+  var dow = function(s){ return DOW[new Date(s + "T00:00:00").getDay()]; };
+  var diff = function(a, b){ return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000); };
+  var get = function(k){ try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
+  var set = function(k, v){ try { localStorage.setItem(k, v); } catch (e) {} };
+  var GUKSI = "2026-12-13";
+  var FINALS = [["2026-11-30", "법규"], ["2026-12-08", "임상의사결정·ADL"], ["2026-12-17", "스포츠손상·치료적 마사지"]];
+  document.getElementById("today").textContent = t0.replace(/-/g, ".") + " (" + dow(t0) + ")";
 
-/* 설정: 이 기기에만 저장 (Gemini 키·Firebase 설정값은 GitHub에 올라가지 않는다) */
-const CFG_K = "gqw.cfg";
-let cfg = Object.assign({ geminiKeys: [], model: "gemini-2.5-flash", firebase: "" }, lsGet(CFG_K, {}));
-/* 예전 설정(키 1개 geminiKey) → 키 목록 geminiKeys 로 옮긴다 */
-if (!Array.isArray(cfg.geminiKeys)) cfg.geminiKeys = [];
-if (cfg.geminiKey) { if (!cfg.geminiKeys.includes(cfg.geminiKey)) cfg.geminiKeys.unshift(cfg.geminiKey); delete cfg.geminiKey; }
-const saveCfg = () => lsSet(CFG_K, cfg);
-/* GEMINI_API_KEYS: 설정에 넣은 키 목록 (코드·GitHub에는 키를 적지 않는다) */
-const GEMINI_API_KEYS = () => (cfg.geminiKeys || []).filter(Boolean);
-/* 설정 링크: …/gq/#fb=<Firebase 설정값> 으로 열면 자동으로 채운다(# 뒤는 서버로 안 감) */
-(function () { const m = location.hash.match(/^#fb=(.+)$/); if (!m) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/"))))); if (o.apiKey && o.projectId) { cfg.firebase = JSON.stringify(o); saveCfg(); } } catch (e) {} try { history.replaceState(null, "", location.pathname); } catch (e) {} })();
-const fbLink = () => location.origin + location.pathname + "#fb=" + btoa(unescape(encodeURIComponent(cfg.firebase))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-
-/* ============ 저장소: 로그인 전엔 이 기기, 로그인하면 Firebase ============ */
-const DATA_K = "gqw.data";
-let S = { cards: [], days: {}, settings: { quotaCards: 15 } };
-let user = null, fb = null, fdb = null, saveState = "", authErr = "";
-function localLoad() { const o = lsGet(DATA_K, {}); S.cards = Object.values(o.cards || {}); S.days = o.days || {}; S.settings = Object.assign({ quotaCards: 15 }, o.settings || {}); }
-function localSaveAll() { const cards = {}; S.cards.forEach(c => cards[c.id] = c); lsSet(DATA_K, { cards, days: S.days, settings: S.settings }); }
-const clean = o => JSON.parse(JSON.stringify(o));
-const uref = () => fdb.collection("users").doc(user.uid);
-function cloudPut(kind, id, data) {
-  localSaveAll();
-  if (!user || !fdb) { saveState = "local"; return; }
-  saveState = "saving";
-  const ref = kind === "card" ? uref().collection("cards").doc(id) : kind === "day" ? uref().collection("days").doc(id) : uref();
-  pending++; refreshEnv();
-  withTO(ref.set(clean(data)), 20000).then(() => { pending--; saveState = "saved"; refreshEnv(); if (!run && tab === "home") render(); }).catch(e => { pending--; saveState = "failed"; cloudStat = "⚠ 마지막 저장 실패: " + ((e && (e.code || e.message)) || e); refreshEnv(); if (!run && (tab === "home" || tab === "settings")) render(); });
-}
-const withTO = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code: "시간 초과(서버 응답 없음)" }), ms))]);
-let cloudStat = "", cloudCount = null, pending = 0;
-/* 계정 저장 시험: 실제로 한 번 쓰고 다시 읽어 본다 */
-async function cloudCheck() {
-  if (!user || !fdb) return;
-  cloudStat = "⏳ 계정 저장 시험 중…"; refreshEnv(); if (tab === "settings") render();
-  try {
-    await withTO(uref().set({ lastSeen: new Date().toISOString(), settings: S.settings }, { merge: true }), 12000);
-    const cs = await withTO(uref().collection("cards").get(), 12000); cloudCount = cs.size;
-    cloudStat = "✅ 계정 저장 확인됨 · 계정 카드 " + cloudCount + "장";
-    if (cloudCount < S.cards.length) { S.cards.forEach(c => cloudPut("card", c.id, c)); cloudStat += " → 이 기기 카드 " + S.cards.length + "장을 계정에 올리는 중"; }
-  } catch (e) { cloudStat = "⚠ 계정 저장 안 됨: " + ((e && (e.code || e.message)) || e); }
-  refreshEnv(); render();
-}
-const keyRef = () => uref().collection("private").doc("keys");
-async function syncKey() {
-  if (!user || !fdb) return;
-  try {
-    const d = await withTO(keyRef().get(), 12000), k = d.exists ? d.data() : {};
-    const remote = Array.isArray(k.geminiKeys) ? k.geminiKeys.filter(Boolean) : (k.geminiKey ? [k.geminiKey] : []), ks = GEMINI_API_KEYS();
-    if (!ks.length && remote.length) { cfg.geminiKeys = remote.slice(); if (k.model) cfg.model = k.model; saveCfg(); }
-    else if (ks.length && ks.join("\n") !== remote.join("\n")) await withTO(keyRef().set({ geminiKeys: ks, geminiKey: ks[0], model: cfg.model, updated: today() }), 12000);
-  } catch (e) {}
-  refreshEnv(); if (tab === "settings") render();
-}
-async function cloudLoad() {
-  const [u, cs, ds] = await Promise.all([uref().get(), uref().collection("cards").get(), uref().collection("days").get()]);
-  const cloudCards = cs.docs.map(d => d.data()), cloudDays = {}; ds.docs.forEach(d => cloudDays[d.id] = d.data());
-  // 이 기기에만 있던 기록을 계정으로 올린다(같은 카드면 기록이 더 많은 쪽)
-  const byId = {}; cloudCards.forEach(c => byId[c.id] = c);
-  const up = [];
-  S.cards.forEach(c => { const k = byId[c.id]; if (!k || (c.history || []).length > (k.history || []).length) { byId[c.id] = Object.assign({}, k || {}, c); up.push(byId[c.id]); } });
-  Object.keys(S.days).forEach(d => { const a = S.days[d], b = cloudDays[d]; if (!b || (a.cardsDone || 0) > (b.cardsDone || 0)) { cloudDays[d] = a; up.push({ __day: d, v: a }); } });
-  S.cards = Object.values(byId); S.days = cloudDays;
-  if (u.exists && u.data().settings) S.settings = Object.assign({ quotaCards: 15 }, u.data().settings);
-  localSaveAll();
-  up.forEach(x => x.__day ? cloudPut("day", x.__day, x.v) : cloudPut("card", x.id, x));
-}
-function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load " + src)); document.head.appendChild(s); }); }
-async function initFirebase() {
-  if (!cfg.firebase) return;
-  let conf; try { conf = typeof cfg.firebase === "string" ? JSON.parse(cfg.firebase) : cfg.firebase; } catch (e) { authErr = "Firebase 설정값이 JSON 모양이 아니에요."; return; }
-  try {
-    const V = "10.12.2", B = "https://www.gstatic.com/firebasejs/" + V + "/";
-    await loadScript(B + "firebase-app-compat.js"); await loadScript(B + "firebase-auth-compat.js"); await loadScript(B + "firebase-firestore-compat.js");
-    fb = window.firebase; if (!fb.apps.length) fb.initializeApp(conf);
-    fdb = fb.firestore(); try { fdb.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
-    try { await fb.auth().getRedirectResult(); } catch (e) { authErr = authText(e); }
-    fb.auth().onAuthStateChanged(async u => {
-      user = u || null;
-      if (user) { try { await withTO(cloudLoad(), 15000); saveState = "saved"; } catch (e) { authErr = "계정 기록을 불러오지 못했어요: " + ((e && (e.code || e.message)) || e); } cloudCheck(); syncKey(); }
-      refreshEnv(); renderHeader(); render();
-    });
-  } catch (e) { authErr = "Firebase를 불러오지 못했어요(인터넷·설정값 확인)."; }
-}
-const authText = e => ({ "auth/popup-blocked": "팝업이 막혔어요. 다시 누르거나 이메일로 로그인하세요.", "auth/unauthorized-domain": "Firebase 콘솔 → Authentication → 설정 → 승인된 도메인에 jsh020605.github.io를 넣어 주세요.", "auth/invalid-credential": "이메일 또는 비밀번호가 틀렸어요.", "auth/wrong-password": "비밀번호가 틀렸어요.", "auth/user-not-found": "없는 계정이에요. 「처음이면 가입」을 누르세요.", "auth/email-already-in-use": "이미 가입된 이메일이에요. 로그인을 누르세요.", "auth/weak-password": "비밀번호는 6자 이상이어야 해요.", "auth/operation-not-allowed": "Firebase 콘솔에서 이 로그인 방법을 켜 주세요.", "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "붙여 넣은 Firebase 설정값의 apiKey가 틀렸어요(한 글자라도 다르면 안 돼요). 아래 「Firebase 설정값 바꾸기 → 연결 끊기」 후 맥에서 복사한 값을 그대로 다시 붙여 넣어 주세요.", "auth/invalid-api-key": "붙여 넣은 Firebase 설정값의 apiKey가 틀렸어요. 연결을 끊고 다시 붙여 넣어 주세요." })[e && e.code] || ("로그인 오류: " + ((e && (e.code || e.message)) || "알 수 없음"));
-async function signInGoogle() {
-  if (!fb) return; authErr = "";
-  const p = new fb.auth.GoogleAuthProvider();
-  try { await fb.auth().signInWithPopup(p); }
-  catch (e) { if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) { try { await fb.auth().signInWithRedirect(p); } catch (x) { authErr = authText(x); } } else if (e && e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") authErr = authText(e); render(); }
-}
-async function signInEmail(create) {
-  if (!fb) return; authErr = "";
-  const em = ($("#em") || {}).value || "", pw = ($("#pw") || {}).value || "";
-  try { if (create) await fb.auth().createUserWithEmailAndPassword(em.trim(), pw); else await fb.auth().signInWithEmailAndPassword(em.trim(), pw); }
-  catch (e) { authErr = authText(e); render(); }
-}
-
-/* ============ 하루 기록·할당량 ============ */
-const dayOf = d => Object.assign({ cardsDone: 0, reviewDone: 0, met: false }, S.days[d] || {});
-const isMet = d => dayOf(d).cardsDone >= S.settings.quotaCards;
-function setDay(d, patch) { const x = Object.assign(dayOf(d), patch); x.met = x.cardsDone >= S.settings.quotaCards; S.days[d] = x; cloudPut("day", d, x); }
-function streak() { let n = 0, d = today(); if (!isMet(d)) d = addDays(d, -1); while (S.days[d] && S.days[d].met) { n++; d = addDays(d, -1); } return n; }
-const due = () => S.cards.filter(c => (c.nextReview || "0") <= today()).sort((a, b) => String(a.nextReview || "").localeCompare(String(b.nextReview || "")));
-const todayStudy = () => { const t0 = today(); return S.cards.map(c => ({ c, h: (c.history || []).filter(x => x.date === t0).slice(-1)[0] })).filter(x => x.h); };
-
-/* ============ Gemini ============ */
-/* 키 로테이션(Round-Robin) + 지연 재시도
-   - 부를 때마다 다음 키로 돌아가며 쓴다.
-   - 429(사용량 초과): 그 키를 잠시 쉬게 하고 기다림 없이 바로 다음 키로.
-   - 500·502·503·504(서버 붐빔): 2초·4초·6초 기다렸다가 다음 키로 다시 (최대 3번).
-   - 모든 키가 쉬는 중: 가장 빨리 풀리는 키를 기다렸다가 다시 (최대 3번, 20초 넘게 기다려야 하면 바로 안내).
-   - 키가 틀림(403 등): 그 키는 이번에 빼고 다음 키로. */
-const RETRY = { maxRetries: 3, delayMs: 2000, maxWaitMs: 20000 };
-const keyCool = {};          // 키 → 다시 써도 되는 시각(ms). Infinity = 틀린 키
-let keyTurn = 0;             // 라운드 로빈 차례
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-function nextGeminiKey() {
-  const ks = GEMINI_API_KEYS(), now = Date.now();
-  for (let i = 0; i < ks.length; i++) { const n = (keyTurn + i) % ks.length; if ((keyCool[ks[n]] || 0) <= now) { keyTurn = (n + 1) % ks.length; return ks[n]; } }
-  return null;
-}
-/* 키 1개로 한 번 부르기 */
-async function geminiCall(key, prompt, timeoutMs) {
-  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeoutMs);
-  try {
-    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(cfg.model || "gemini-2.5-flash") + ":generateContent", {
-      method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.3 } })
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const msg = (j.error && j.error.message) || r.status, s = r.status;
-      if (s === 429) {
-        const info = ((j.error && j.error.details) || []).find(d => d && d.retryDelay), sec = info ? parseFloat(info.retryDelay) : NaN;
-        throw { code: "rate", msg, waitMs: isFinite(sec) ? sec * 1000 : 0, daily: /PerDay|per day/i.test(JSON.stringify(j.error || {})) };
-      }
-      if (s === 500 || s === 502 || s === 503 || s === 504) throw { code: "busy", msg };
-      if (s === 404) throw { code: "model", msg };
-      if (s === 401 || s === 403 || (s === 400 && /api.?key/i.test(String(msg)))) throw { code: "key", msg };
-      throw { code: "http", msg };
-    }
-    const txt = ((j.candidates || [])[0] || {}).content ? j.candidates[0].content.parts.map(p => p.text || "").join("") : "";
-    return JSON.parse(txt.replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/, ""));
-  } catch (e) { if (e && e.name === "AbortError") throw { code: "timeout" }; if (e instanceof SyntaxError) throw { code: "json" }; throw e; }
-  finally { clearTimeout(t); }
-}
-/* 채점·복습이 부르는 함수: onWait(문구)로 「잠시 기다리는 중」을 화면에 보여 줄 수 있다 */
-async function gemini(prompt, timeoutMs = 45000, onWait) {
-  if (window.__fakeGemini) return window.__fakeGemini(prompt);
-  if (!GEMINI_API_KEYS().length) throw { code: "nokey" };
-  let retries = 0, lastErr = null;
-  while (true) {
-    const key = nextGeminiKey();
-    if (!key) {                                   // 모든 키가 쉬는 중이거나 틀림
-      const now = Date.now(), waits = GEMINI_API_KEYS().map(k => (keyCool[k] || 0) - now).filter(w => w > 0 && isFinite(w));
-      if (!waits.length) throw lastErr || { code: "key" };
-      const w = Math.max(Math.min(...waits), RETRY.delayMs);
-      if (retries >= RETRY.maxRetries || w > RETRY.maxWaitMs) throw Object.assign({}, lastErr || { code: "rate" }, { code: "rate", waitMs: Math.min(...waits) });
-      retries++; onWait && onWait("사용량이 많아 " + Math.ceil(w / 1000) + "초 기다렸다 다시 해요 (" + retries + "/" + RETRY.maxRetries + ")");
-      await sleep(w); continue;
-    }
-    try { return await geminiCall(key, prompt, timeoutMs); }
-    catch (e) {
-      lastErr = e;
-      if (e.code === "rate") { keyCool[key] = Date.now() + (e.daily ? 3600000 : Math.max(e.waitMs || 0, RETRY.delayMs)); continue; }   // 다음 키로 바로
-      if (e.code === "key") { keyCool[key] = Infinity; continue; }                                                                     // 틀린 키는 빼고 다음 키로
-      if (e.code === "busy" && retries < RETRY.maxRetries) {
-        retries++; const w = RETRY.delayMs * retries;
-        onWait && onWait("Gemini 서버가 붐벼 " + (w / 1000) + "초 뒤 다시 해요 (" + retries + "/" + RETRY.maxRetries + ")");
-        await sleep(w); continue;
-      }
-      throw e;                                    // 모델 이름·시간 초과·답 모양 오류는 바로 안내
-    }
+  function dd(label, d, editable){
+    if (!d) return '<div><span>★ ' + label + '</span><b>D-?</b>' + (editable ? '<small><input type="date" id="toeicIn" aria-label="토익 시험 날짜"></small>' : "") + "</div>";
+    var n = diff(t0, d);
+    if (n < 0) return editable ? '<div><span>★ ' + label + '</span><b>D-?</b><small><input type="date" id="toeicIn" aria-label="토익 시험 날짜"></small></div>' : "";
+    return '<div class="' + (n >= 0 && n <= 14 ? "near" : "") + '"><span>★ ' + label + '</span><b>' + (n > 0 ? "D-" + n : n === 0 ? "D-DAY" : "D+" + (-n)) + '</b><small>' + d.replace(/-/g, ".") + " (" + dow(d) + ")" + (editable ? ' · <button id="toeicReset">바꾸기</button>' : "") + "</small></div>";
   }
-}
-const gErr = e => ({ nokey: "설정에서 Gemini API 키를 넣어 주세요.", key: "Gemini 키가 틀렸거나 막혀 있어요(설정 → 연결 시험).", model: "Gemini 모델 이름을 확인해 주세요(설정 → 모델 목록 불러오기).", rate: "Gemini 사용량이 다 찼어요(키 " + GEMINI_API_KEYS().length + "개 모두). " + (e && e.daily ? "오늘 사용량이 끝났을 수 있어요. 키를 더 넣거나 내일 다시 해 주세요." : (e && e.waitMs > 0 ? "약 " + Math.ceil(e.waitMs / 1000) + "초 뒤 다시 눌러 주세요." : "잠시 뒤 다시 눌러 주세요.")), busy: "Gemini 서버가 붐벼요. 잠시 뒤 다시 눌러 주세요.", timeout: "Gemini 답이 늦어요. 다시 눌러 주세요.", json: "Gemini 답을 읽지 못했어요. 다시 눌러 주세요." })[e && e.code] || ("Gemini 오류: " + ((e && (e.msg || e.message)) || "알 수 없음"));
-/* 붙여 넣은 키(쉼표·띄어쓰기·줄바꿈으로 여러 개)를 목록에 더한다. 같은 키는 한 번만 */
-function addKeys(raw) {
-  const add = String(raw || "").split(/[\s,;]+/).map(x => x.trim()).filter(x => x.length >= 20);
-  if (!add.length) return 0;
-  add.forEach(k => { if (!cfg.geminiKeys.includes(k)) cfg.geminiKeys.push(k); delete keyCool[k]; });
-  saveCfg(); return add.length;
-}
-async function listModels() {
-  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": GEMINI_API_KEYS()[0] || "" } });
-  const j = await r.json(); if (!r.ok) throw { code: "key", msg: j.error && j.error.message };
-  return (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")).map(m => m.name.replace(/^models\//, ""));
-}
-
-/* ============ 음성 (브라우저 자체: 받아쓰기·소리 읽기) ============ */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, recOn = false, recTarget = null, srBlocked = false;
-function micToggle(target) {
-  if (!SR || srBlocked) { const el = document.getElementById(target); if (el) el.focus(); return; }
-  if (recOn && rec) { rec.stop(); return; }
-  try {
-    rec = new SR(); rec.lang = "ko-KR"; rec.continuous = true; rec.interimResults = false; recTarget = target;
-    rec.onstart = () => { recOn = true; micUI(); };
-    rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const el = document.getElementById(recTarget); if (el) { el.value = (el.value ? el.value.replace(/\s*$/, " ") : "") + e.results[i][0].transcript; el.dispatchEvent(new Event("input", { bubbles: true })); } } };
-    rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") { srBlocked = true; render(); } };
-    rec.onend = () => { recOn = false; micUI(); };
-    rec.start();
-  } catch (e) { srBlocked = true; render(); }
-}
-function micUI() { document.querySelectorAll(".btn.mic").forEach(b => { b.setAttribute("aria-pressed", String(recOn)); b.textContent = recOn ? "⏹ 그만 말하기" : "🎤 말하기"; }); }
-function stopVoice() { try { recOn && rec && rec.stop(); } catch (e) {} try { speechSynthesis.cancel(); } catch (e) {} }
-function speak(text) {
-  if (!window.speechSynthesis || !text) return;
-  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(text).slice(0, 1800)); u.lang = "ko-KR"; const v = speechSynthesis.getVoices().find(x => /^ko/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
-}
-function unlockSpeech() { try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
-const micBtn = id => (SR && !srBlocked) ? '<button class="btn mic" data-act="mic" data-id="' + id + '" aria-pressed="false">🎤 말하기</button>' : '<button class="btn" data-act="mic" data-id="' + id + '">🎤 말하기</button><span class="small muted">이 브라우저는 마이크가 막혀 있어요. 칸을 누르고 키보드의 🎤 받아쓰기로 말하세요.</span>';
-
-/* ============ 화면 상태 ============ */
-let tab = "home", run = null, rev = null, lastDone = null, cardFilter = "";
-const STEPS = ["concept", "quiz", "explain"], STEP_NAME = { concept: "개념 해설", quiz: "퀴즈", explain: "말로 설명하기" };
-
-function renderHeader() {
-  const n = diffDays(today(), EXAM);
-  $("#dday").textContent = n > 0 ? "국시 D-" + n : n === 0 ? "국시 D-DAY" : "";
-  $("#streak").textContent = streak();
-}
-function refreshEnv() {
-  const where = user ? "☁️ 내 계정(" + (user.email || "Google") + ")" : (fb ? "📱 이 기기만 — 설정에서 로그인하면 핸드폰·맥이 같은 기록" : "📱 이 기기만 — 설정에서 Firebase를 연결하세요");
-  $("#env").textContent = "저장: " + where + " · 이 기기 카드 " + S.cards.length + "장" + (pending ? " · 보내는 중 " + pending : "") + (cloudStat ? " · " + cloudStat : "") + " · 채점: " + (GEMINI_API_KEYS().length ? "Gemini 키 " + GEMINI_API_KEYS().length + "개" : "키 없음");
-}
-function setTab(t) { tab = t; run = null; rev = null; document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); render(); window.scrollTo(0, 0); }
-function render() {
-  const v = $("#view");
-  if (run) { v.innerHTML = viewRun(); const t = $("#explainIn"); if (t) t.addEventListener("input", () => { run.explain = t.value; }); return; }
-  if (rev) { v.innerHTML = viewReview(); return; }
-  v.innerHTML = tab === "cards" ? viewCards() : tab === "settings" ? viewSettings() : viewHome();
-  const cf = $("#cardFilter"); if (cf) cf.addEventListener("input", () => { cardFilter = cf.value; const pos = cf.selectionStart; render(); const n = $("#cardFilter"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } });
-}
-
-/* ============ 홈 ============ */
-function viewHome() {
-  const t0 = today(), q = S.settings.quotaCards, x = dayOf(t0), pct = Math.min(100, Math.round(Math.min(x.cardsDone, q) / q * 100)), met = isMet(t0);
-  const done = todayStudy(), doneIds = new Set(done.map(o => o.c.id)), before = due().filter(c => !doneIds.has(c.id));
-  let h = "";
-  if (!S.cards.length) h += '<div class="notice">카드가 아직 없어요. <b>설정 → 카드 가져오기</b>에서 Claude가 만든 카드 파일(JSON)을 넣어 주세요.</div>';
-  if (!user) h += '<div class="notice">' + (fb ? "로그인하지 않아 이 기기에만 저장돼요. <b>설정</b>에서 로그인하면 핸드폰·맥이 같은 기록을 봐요." : "아직 Firebase가 연결되지 않아 이 기기에만 저장돼요. <b>설정</b>에서 연결해 주세요.") + "</div>";
-  if (lastDone) h += '<div class="notice ok">✅ 카드 완료: <b>' + esc(lastDone.topic) + "</b> · 퀴즈 " + esc(lastDone.quiz) + " 맞음" + (lastDone.explain != null ? " · 설명 " + lastDone.explain + "점" : "") + " · 다음 복습 " + md(lastDone.next) + '<br><span class="small">' + ({ saved: "☁️ 계정에 저장됨", saving: "☁️ 저장 중…", local: "📱 이 기기에만 저장됨", failed: "⚠ 계정 저장 실패 — 연결되면 다시 보내요" }[saveState] || "") + "</span></div>";
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "🔥 오늘 할당량 완료! 연속 " + streak() + "일째" : "카드 " + Math.min(x.cardsDone, q) + "/" + q + " — " + (q - x.cardsDone) + "장 더 하면 완료") + (x.reviewDone ? " · 복습 " + x.reviewDone + "문제" : "") + "</p></section>";
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
-    (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div><ul class="list">' + before.slice(0, 15).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
-  const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 학습 완료</h2><span class="chip ok">' + done.length + "장</span></div>" +
-    (done.length ? '<ul class="list">' + done.slice().reverse().map(({ c, h: r }) => '<li style="flex-direction:column;align-items:stretch"><div class="row" style="justify-content:space-between"><b>' + esc(c.topic) + '</b><span class="small muted">퀴즈 ' + esc(r.quiz) + " 맞음" + (r.explain != null ? " · 설명 " + r.explain + "점" : "") + "</span></div>" +
-      (asArr(r.asked).length ? '<div class="small" style="display:flex;flex-direction:column;gap:2px">' + asArr(r.asked).map(x => '<span style="color:' + (x.ok ? "var(--ok)" : "var(--no)") + '">' + (x.ok ? "✓ " : "✗ ") + esc(cut(x.q, 48)) + "</span>").join("") + "</div>" : "") +
-      '<div class="row" style="justify-content:space-between"><span class="small muted">다음 복습 ' + md(c.nextReview) + '</span><button class="btn sm ghost" data-act="study" data-id="' + esc(c.id) + '">다시 보기</button></div></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">퀴즈를 채점하면 여기에 낸 문제와 맞았는지가 쌓여요.</p>') + "</section>";
-  const pool = reviewPool();
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🔁 복습 — 틀린 것만</h2><span class="chip mute">' + pool.reduce((n, o) => n + o.items, 0) + "개</span></div>" +
-    (pool.length ? '<ul class="list">' + pool.slice(0, 10).map(({ c, r }) => '<li style="flex-direction:column;align-items:stretch"><b>' + esc(c.topic) + '</b><div class="small" style="display:flex;flex-direction:column;gap:4px">' +
-        asArr(r.wrongQs).map(w => "<span>✗ " + esc(cut(w.q, 60)) + '<br><span class="muted">정답: <b>' + esc(w.right) + "</b>" + (w.why ? " — " + esc(cut(w.why, 80)) : "") + "</span></span>").join("") +
-        asArr(r.missed).map(m => "<span>❗ " + esc(m.point) + (m.explain ? '<br><span class="muted">' + esc(cut(m.explain, 90)) + "</span>" : "") + "</span>").join("") +
-        asArr(r.wrongSaid).map(w => "<span>✖ " + esc(cut(w.said, 50)) + (w.fix ? '<br><span class="muted">→ ' + esc(cut(w.fix, 90)) + "</span>" : "") + "</span>").join("") +
-        '</div></li>').join("") + '</ul><div class="row"><button class="btn primary" data-act="revStart">틀린 것만 복습 세션 (' + Math.min(pool.length, 8) + "장)</button></div>"
-      : '<p class="small muted" style="margin:0">' + (done.length ? "최근 7일 동안 틀린 문제가 없어요 👏" : "퀴즈에서 틀린 문제와 설명에서 빠뜨린 내용이 여기에 모여요.") + "</p>") + "</section>";
-  return h;
-}
-
-/* ============ 카드 공부 ============ */
-function startRun(card) { stopVoice(); run = { card, box0: card.box || 0, histIdx: null, counted: false, step: 0, gate: false, picks: {}, checked: false, explain: "", grade: null, busy: false, err: "" }; render(); window.scrollTo(0, 0); }
-const quizScore = () => (run.card.quiz || []).reduce((n, q, i) => n + (run.picks[i] === q.answer ? 1 : 0), 0);
-function block(title, arr, k) {
-  if (!arr || !arr.length) return "";
-  return '<div class="gb ' + k + '"><h3>' + title + "</h3><ul>" + arr.map(a => { if (a && typeof a === "object") { const hd = a.point || a.said || "", bd = a.why || a.explain || a.fix || ""; return "<li><b>" + esc(hd) + "</b>" + (bd ? '<div class="w small">' + esc(bd) + "</div>" : "") + "</li>"; } return "<li>" + esc(a) + "</li>"; }).join("") + "</ul></div>";
-}
-function viewRun() {
-  const c = run.card, cur = STEPS[run.step];
-  let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><div><span class="small muted">' + esc(c.subject || "") + "</span><h2>" + esc(c.topic) + '</h2></div><button class="btn ghost" data-act="exitRun">나가기</button></div><div class="steps">' + STEPS.map((s, i) => '<span class="' + (i === run.step && !run.gate ? "on" : i < run.step || (i === run.step && run.gate) ? "past" : "") + '">' + STEP_NAME[s] + "</span>").join("") + "</div>";
-  if (run.gate) {
-    const nx = STEPS[run.step + 1], qn = (c.quiz || []).length;
-    const desc = { quiz: "객관식 " + qn + "문제예요. 다 고른 뒤 「채점하기」를 누르세요.", explain: "교재를 덮고 소리 내어 설명해요. 「채점 받기」를 누르면 Gemini가 바로 점수와 해설을 알려 줘요." }[nx];
-    return h + '<div class="gate"><div class="small muted">' + (run.step + 1) + " / " + STEPS.length + ' 섹션 끝</div><div class="big">✅ ' + STEP_NAME[cur] + ' 끝!</div><div class="sub">다음 섹션: <b>' + STEP_NAME[nx] + "</b><br>" + esc(desc) + '</div><button class="btn omr" data-act="gateGo">' + STEP_NAME[nx] + " 시작 →</button></div></section>";
+  function finals(){
+    var up = FINALS.filter(function(f){ return f[0] >= t0; });
+    if (!up.length) return "";
+    return '<div class="fin"><span>📝 기말고사</span>' + up.map(function(f){ var n = diff(t0, f[0]); return '<em class="' + (n <= 7 ? "near" : "") + '">' + f[1] + " " + (n ? "D-" + n : "D-DAY") + " <small>" + f[0].slice(5).replace("-", "/") + "(" + dow(f[0]) + ")</small></em>"; }).join("") + "</div>";
   }
-  if (c.question) h += '<p class="small muted" style="margin:0">문제: ' + esc(c.question) + (c.answer ? " · 정답 " + esc(c.answer) : "") + "</p>";
-  if (cur === "concept") {
-    h += '<div class="concept">' + esc(c.concept) + "</div>" + ((c.keyPoints || []).length ? '<div class="gb ok"><h3>📌 핵심 포인트</h3><ul>' + c.keyPoints.map(k => "<li>" + esc(k) + "</li>").join("") + "</ul></div>" : "") +
-      '<div class="row">' + (window.speechSynthesis ? '<button class="btn" data-act="speakConcept">🔊 읽어 주기</button>' : "") + '<button class="btn primary" data-act="next">다음 섹션으로 →</button></div>';
-  } else if (cur === "quiz") {
-    h += (c.quiz || []).map((q, qi) => { const pick = run.picks[qi]; return '<div class="q"><p>' + (qi + 1) + ". " + esc(q.q) + '</p><div class="opts">' + (q.choices || []).map((ch, ci) => { let cls = "opt"; if (run.checked) { if (ci === q.answer) cls += " right"; else if (ci === pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="pick" data-q="' + qi + '" data-c="' + ci + '" aria-pressed="' + (pick === ci) + '"' + (run.checked ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" + (run.checked ? '<div class="why">' + (pick === q.answer ? "정답! " : "정답은 " + (q.answer + 1) + "번. ") + esc(q.why || "") + "</div>" : "") + "</div>"; }).join("");
-    const all = (c.quiz || []).every((_, i) => run.picks[i] != null);
-    h += run.checked ? '<div class="row"><span class="chip ' + (quizScore() === (c.quiz || []).length ? "ok" : "") + '">' + quizScore() + " / " + (c.quiz || []).length + ' 맞음</span><button class="btn primary" data-act="next">다음 섹션으로 →</button></div>' : '<div class="row"><button class="btn omr" data-act="check"' + (all ? "" : " disabled") + ">채점하기</button></div>";
-  } else {
-    h += '<div class="sheet" style="padding:12px"><h3>🗣 ' + esc(c.explainPrompt || "이 개념을 30초 안에 소리 내어 설명해 보세요.") + '</h3><p class="small muted" style="margin:0">교재를 보지 말고 면접에서 말하듯 설명하세요. 말한 내용이 아래에 적혀요.</p><div class="row">' + micBtn("explainIn") + '</div><textarea id="explainIn" placeholder="말하거나 직접 써도 돼요.">' + esc(run.explain) + "</textarea></div>";
-    if (run.grade) {
-      const g = run.grade;
-      h += '<div class="row" style="align-items:flex-end;gap:10px"><span class="score">' + (g.score | 0) + '</span><span class="small muted">/ 100 · Gemini 채점</span>' + (window.speechSynthesis ? '<button class="btn sm" data-act="speakGrade">🔊 다시 듣기</button>' : "") + "</div>" + (g.summary ? '<p class="concept small" style="margin:0">' + esc(g.summary) + "</p>" : "") +
-        block("✅ 맞았어요", g.good, "ok") + block("❗ 안 말한 부분 (설명)", g.missing, "warn") + block("✖ 틀리게 말한 부분 (바로잡기)", g.wrong, "no") + (g.better ? '<div class="gb"><h3>이렇게 말하면 더 좋아요</h3><p class="small" style="margin:4px 0 0">' + esc(g.better) + "</p></div>" : "") +
-        '<div class="row"><button class="btn omr" data-act="finish">카드 끝내기 → 홈</button><button class="btn ghost" data-act="regrade">다시 채점</button></div>';
-    } else {
-      h += '<div class="row"><button class="btn omr" data-act="grade"' + (run.busy ? " disabled" : "") + ">" + (run.busy ? esc(run.busyMsg || "Gemini가 채점하는 중…") : "✅ 채점 받기") + '</button><button class="btn" data-act="finish">카드 끝내기 (채점 없이)</button></div>';
-    }
-    if (run.err) h += '<div class="notice">' + esc(run.err) + "</div>";
+  function renderDd(){
+    document.getElementById("dd").innerHTML = dd("국시", GUKSI) + dd("토익", get("jo.toeic"), true) + finals();
+    var inp = document.getElementById("toeicIn");
+    if (inp) inp.addEventListener("change", function(){ if (/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) { set("jo.toeic", inp.value); renderDd(); } });
+    var rs = document.getElementById("toeicReset");
+    if (rs) rs.addEventListener("click", function(){ set("jo.toeic", ""); renderDd(); });
   }
-  return h + "</section>";
-}
-function gradeSpeech(g) {
-  const pick = (arr, k) => (arr || []).map(x => x && typeof x === "object" ? x[k] : x).filter(Boolean);
-  let t = (g.score | 0) + "점이에요. " + (g.summary || "");
-  const ok = pick(g.good, "point"); if (ok.length) t += " 이건 맞았어요: " + ok.join(", ") + ".";
-  (g.missing || []).forEach(m => { t += " 안 말한 부분, " + (typeof m === "object" ? (m.point || "") + ". " + (m.explain || "") : m); });
-  (g.wrong || []).forEach(w => { t += " 바로잡을 부분, " + (typeof w === "object" ? (w.said || "") + ". " + (w.fix || "") : w); });
-  return t;
-}
-async function grade() {
-  const t = $("#explainIn"); run.explain = t ? t.value.trim() : run.explain;
-  if (!run.explain) { run.err = "먼저 말하거나 써 주세요."; return render(); }
-  unlockSpeech(); stopVoice(); run.busy = true; run.busyMsg = ""; run.err = ""; render();
-  const c = run.card;
-  const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 우리말 용어로 말해도 인정한다. 한국어로.\n\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
-    "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 소리 내어 읽어 줄 총평 1~2문장(존댓말). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
-    'JSON만: {"score":0~100 정수,"summary":"","good":[{"point":"","why":""}],"missing":[{"point":"","explain":""}],"wrong":[{"said":"","fix":""}],"better":""}';
-  try { run.grade = await gemini(prompt, 45000, m => { run.busyMsg = m; render(); }); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
-  catch (e) { run.err = gErr(e); }
-  run.busy = false; run.busyMsg = ""; render();
-}
-const asArr = v => Array.isArray(v) ? v : (v ? [v] : []);
-function buildEntry() {
-  const c = run.card, quiz = asArr(c.quiz), g = run.grade, total = quiz.length, qs = quizScore();
-  const ch = (q, i) => { const v = asArr(q.choices)[i]; return v == null ? "안 고름" : String(v); };
-  return {
-    date: today(), quiz: qs + "/" + total, explain: g ? (g.score | 0) : null,
-    asked: quiz.map((q, i) => ({ q: String(q.q || ""), ok: run.picks[i] === q.answer })),
-    wrongQs: quiz.map((q, i) => ({ q, i })).filter(o => run.picks[o.i] !== o.q.answer).map(({ q, i }) => ({ q: String(q.q || ""), mine: ch(q, run.picks[i]), right: ch(q, q.answer), why: String(q.why || "") })),
-    missed: g ? asArr(g.missing).map(m => typeof m === "object" ? { point: String(m.point || ""), explain: String(m.explain || "") } : { point: String(m), explain: "" }).filter(x => x.point) : [],
-    wrongSaid: g ? asArr(g.wrong).map(w => typeof w === "object" ? { said: String(w.said || ""), fix: String(w.fix || "") } : { said: String(w), fix: "" }).filter(x => x.said || x.fix) : []
-  };
-}
-/* 퀴즈를 채점하는 순간 완료로 기록, 설명 채점·끝내기 때 같은 기록을 고친다(중간에 나가도 남는다) */
-function recordCard() {
-  const c = run.card, e = buildEntry(), [ok, tot] = e.quiz.split("/").map(Number), pass = ok === tot && (e.explain == null || e.explain >= 70);
-  const hist = asArr(c.history).slice(-19);
-  if (run.histIdx != null && hist[run.histIdx] && hist[run.histIdx].date === e.date) hist[run.histIdx] = e;
-  else { const again = hist.some(r => r && r.date === e.date); hist.push(e); run.histIdx = hist.length - 1; if (!again && !run.counted) { run.counted = true; setDay(e.date, { cardsDone: dayOf(e.date).cardsDone + 1 }); } }
-  c.history = hist;
-  c.box = pass ? Math.min(run.box0 + 1, INTERVALS.length) : 0;
-  c.nextReview = addDays(e.date, pass ? INTERVALS[Math.max(0, c.box - 1)] : 1);
-  lastDone = { topic: c.topic, quiz: e.quiz, explain: e.explain, next: c.nextReview };
-  cloudPut("card", c.id, c); renderHeader();
-}
-function finishCard() { try { recordCard(); } catch (e) {} stopVoice(); run = null; tab = "home"; renderHeader(); setTab("home"); }
+  renderDd();
 
-/* ============ 복습 세션 ============ */
-function reviewPool() {
-  const wk = addDays(today(), -7), out = [];
-  S.cards.forEach(c => { const r = asArr(c.history).filter(x => x && x.date >= wk).slice(-1)[0]; if (!r) return; const items = asArr(r.wrongQs).length + asArr(r.missed).length + asArr(r.wrongSaid).length; if (items) out.push({ c, r, items }); });
-  return out.sort((a, b) => b.items - a.items);
-}
-async function reviewStart() {
-  const pool = reviewPool().slice(0, 8); if (!pool.length) return;
-  rev = { items: [], i: 0, right: 0, busy: true, err: "", done: false }; render(); window.scrollTo(0, 0);
-  const data = pool.map(({ c, r }) => ({ topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), wrongQuestions: asArr(r.wrongQs).map(w => ({ q: w.q, studentPicked: w.mine, correct: w.right, why: w.why })), missedInExplanation: asArr(r.missed), wronglySaid: asArr(r.wrongSaid) }));
-  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장.\n틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
-  try { const arr = await gemini(prompt, 60000, m => { rev.busyMsg = m; render(); }); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
-  catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
-  if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
-  rev.busy = false; render();
-}
-function viewReview() {
-  if (rev.busy) return '<section class="sheet"><h2>🔁 복습 세션 준비 중…</h2>' + (rev.busyMsg ? '<p class="small">' + esc(rev.busyMsg) + "</p>" : "") + '<p class="small muted">Gemini가 카드별 요약과 새 문제를 만들고 있어요. (20~40초)</p></section>';
-  if (rev.done || !rev.items.length) return '<section class="sheet"><div class="gate"><div class="big">🔁 복습 끝!</div><div class="sub">' + rev.right + " / " + rev.items.length + ' 맞음</div><button class="btn omr" data-act="revExit">🏠 홈으로</button></div></section>';
-  const it = rev.items[rev.i];
-  return '<section class="sheet"><div class="row" style="justify-content:space-between"><span class="chip">' + (rev.i + 1) + " / " + rev.items.length + '</span><button class="btn ghost" data-act="revExit">나가기</button></div>' + (rev.err ? '<div class="notice">' + esc(rev.err) + "</div>" : "") + "<h2>" + esc(it.topic) + '</h2><div class="gb ok"><h3>📌 핵심 요약</h3><p class="small" style="margin:4px 0 0;white-space:pre-wrap">' + esc(it.summary) + '</p></div><div class="q"><p>' + esc(it.q) + '</p><div class="opts">' +
-    it.choices.map((ch, ci) => { let cls = "opt"; if (it.pick != null) { if (ci === it.answer) cls += " right"; else if (ci === it.pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="revPick" data-c="' + ci + '"' + (it.pick != null ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" +
-    (it.pick != null ? '<div class="why">' + (it.pick === it.answer ? "정답! " : "정답은 " + (it.answer + 1) + "번. ") + esc(it.why) + '</div><div class="row"><button class="btn primary" data-act="revNext">' + (rev.i + 1 < rev.items.length ? "다음 →" : "복습 끝내기") + "</button></div>" : "") + "</div></section>";
-}
-
-/* ============ 카드함 ============ */
-function viewCards() {
-  const f = cardFilter.trim(), list = S.cards.filter(c => !f || (c.topic + " " + c.subject).includes(f)).sort((a, b) => String(a.nextReview || "").localeCompare(String(b.nextReview || "")));
-  return '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>카드함</h2><span class="chip mute">' + S.cards.length + '장</span></div><input type="text" id="cardFilter" placeholder="과목·주제 찾기 (예: 노인복지법)" value="' + esc(cardFilter) + '">' +
-    (list.length ? '<ul class="list">' + list.map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · 다음 복습 " + md(c.nextReview) + " · " + (c.box ? c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">공부</button></li>').join("") + "</ul>" : '<p class="small muted">카드가 없어요.</p>') + "</section>";
-}
-
-/* ============ 설정 ============ */
-function viewSettings() {
-  const fbBox = !cfg.firebase
-    ? '<p class="small muted" style="margin:0">Firebase 콘솔의 웹 앱 설정값(<code>{ apiKey, authDomain, projectId, … }</code>)을 붙여 넣으면 로그인·동기화가 켜져요. 방법은 볼트의 「국시 퀘스트 웹 Firebase 설정」 문서를 보세요.</p><textarea id="fbConf" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder=\'{"apiKey":"…","authDomain":"….firebaseapp.com","projectId":"…","appId":"…"}\'></textarea><div class="row"><button class="btn primary" data-act="saveFb">Firebase 연결</button></div>'
-    : (user ? '<p style="margin:0">☁️ 로그인: <b>' + esc(user.email || "Google 계정") + '</b></p><p class="small" style="margin:0">' + esc(cloudStat || "") + '</p><div class="row"><button class="btn primary" data-act="cloudCheck">계정 저장 시험 · 카드 올리기</button><button class="btn" data-act="signOut">로그아웃</button></div>'
-      : '<div class="row"><button class="btn primary" data-act="google">Google로 로그인</button></div><p class="small muted" style="margin:0">구글 로그인이 안 되면 이메일로:</p><input type="email" id="em" placeholder="이메일" autocomplete="username"><input type="password" id="pw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password"><div class="row"><button class="btn" data-act="emailIn">로그인</button><button class="btn ghost" data-act="emailUp">처음이면 가입</button></div>') +
-      '<div class="gb"><h3>📲 다른 앱·기기로 옮기기</h3><p class="small muted" style="margin:4px 0 6px">새 앱(Dock·홈 화면)이나 핸드폰은 저장 공간이 따로라 처음 한 번 설정이 필요해요. 아래로 설정값을 옮기고 <b>로그인만</b> 하면 Gemini 키·카드·기록은 계정에서 따라와요.</p><div class="row"><button class="btn sm" data-act="copyConf">설정값 복사</button><button class="btn sm" data-act="copyLink">설정 링크 복사</button></div><p class="small muted" id="linkMsg" style="margin:4px 0 0"></p><textarea id="linkBox" class="hidden" readonly style="min-height:60px;font-family:var(--mono);font-size:11px;margin-top:6px"></textarea><p class="small muted" style="margin:6px 0 0">· 같은 맥의 새 앱: 「설정값 복사」 → 새 앱 설정 ☁️ 칸에 붙여 넣기<br>· 아이폰: 「설정 링크 복사」 → 아이폰 사파리에 링크 열기 → 공유 → 홈 화면에 추가</p></div>' +
-      '<p class="small muted" style="margin:0">연결된 프로젝트: ' + esc((() => { try { const o = JSON.parse(cfg.firebase); return (o.projectId || "?") + " · apiKey …" + String(o.apiKey || "").slice(-4) + " (" + String(o.apiKey || "").length + "자)"; } catch (e) { return "?"; } })()) + '</p><details><summary class="small muted">Firebase 설정값 바꾸기</summary><div class="row" style="margin-top:6px"><button class="btn sm ghost" data-act="clearFb">Firebase 연결 끊기</button></div></details>';
-  return '<section class="sheet"><h2>☁️ 계정·동기화 (Firebase)</h2>' + (authErr ? '<div class="notice">' + esc(authErr) + "</div>" : "") + fbBox + "</section>" +
-    '<section class="sheet"><h2>✨ Gemini (채점·복습)</h2><p class="small muted" style="margin:0">Google AI Studio에서 받은 API 키를 <b>직접</b> 붙여 넣으세요. 이 기기에만 저장되고 어디에도 올라가지 않아요.</p>' +
-    '<p class="small muted" style="margin:0">키를 여러 개 넣으면 돌아가며 쓰고, 사용량이 찬 키는 건너뛰어요. <b>같은 Google Cloud 프로젝트의 키는 사용량을 같이 써서</b> 여러 개 넣어도 효과가 없어요.</p>' +
-    (GEMINI_API_KEYS().length ? '<div class="small" style="margin:0">' + GEMINI_API_KEYS().map((k, i) => '<div class="row" style="gap:6px;align-items:center">' + (i + 1) + '. <code>…' + esc(k.slice(-4)) + '</code> <button class="btn sm ghost" data-act="delKey" data-id="' + i + '">빼기</button></div>').join("") + "</div>" : "") +
-    '<input type="password" id="gkey" placeholder="' + (GEMINI_API_KEYS().length ? "키 " + GEMINI_API_KEYS().length + "개 저장됨 · 더 넣으려면 붙여 넣기" : "Gemini API 키 (여러 개면 쉼표·줄바꿈으로)") + '" autocomplete="off">' +
-    '<label class="f">모델<select id="gmodel"><option>' + esc(cfg.model) + "</option></select></label>" +
-    '<div class="row"><button class="btn primary" data-act="saveKey">저장</button><button class="btn" data-act="testKey">연결 시험</button><button class="btn" data-act="models">모델 목록 불러오기</button>' + (GEMINI_API_KEYS().length ? '<button class="btn ghost" data-act="clearKey">키 모두 지우기</button>' : "") + '</div><p class="small muted" id="keyMsg" style="margin:0"></p></section>' +
-    '<section class="sheet"><h2>📥 카드 가져오기</h2><p class="small muted" style="margin:0">Claude가 볼트 <code>3. 수업/국시 퀘스트 앱/카드 내보내기/</code>에 만든 JSON 파일을 고르세요. 같은 카드는 내용만 바뀌고 공부 기록은 그대로예요.</p><input type="file" id="cardFile" accept=".json,application/json"><textarea id="cardPaste" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder="또는 붙여 넣기로 가져오기: Gemini가 준 {&quot;cards&quot;:[ … ]} 를 여기에 붙여 넣기"></textarea><div class="row"><button class="btn primary" data-act="importCards">가져오기</button></div><p class="small muted" id="impMsg" style="margin:0"></p></section>' +
-    '<section class="sheet"><h2>⚙️ 하루 할당량</h2><label class="f">하루 카드 수<input type="number" id="quota" min="1" max="60" value="' + S.settings.quotaCards + '"></label><div class="row"><button class="btn" data-act="saveQuota">저장</button><button class="btn ghost" data-act="exportAll">기록 내보내기(JSON)</button></div></section>';
-}
-async function importCards() {
-  const f = ($("#cardFile") || {}).files && $("#cardFile").files[0], msg = $("#impMsg"), pasted = (($("#cardPaste") || {}).value || "").trim();
-  if (!f && !pasted) { msg.textContent = "파일을 고르거나 칸에 붙여 넣어 주세요."; return; }
-  let raw = pasted || await f.text(), j;
-  raw = raw.replace(/```(?:json)?/gi, "").replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
-  try { j = JSON.parse(raw); } catch (e) {
-    const a = raw.indexOf("{"), b = raw.lastIndexOf("}"), c = raw.indexOf("["), d = raw.lastIndexOf("]");
-    try { j = JSON.parse(raw.slice(a, b + 1)); } catch (x) { try { j = JSON.parse(raw.slice(c, d + 1)); } catch (y) { msg.textContent = "카드 모양(JSON)을 읽지 못했어요. Gemini 답의 마지막 코드 블록만 복사해 주세요."; return; } }
+  var W = [
+    ["2026-11-16", "2026-11-22", "해부·생리·운동학 + 공중보건"],
+    ["2026-11-23", "2026-11-29", "진단평가(특수검사·평가도구) + 신경계 중재"],
+    ["2026-11-30", "2026-12-06", "전기·광선·심폐 + 의료관계법규"],
+    ["2026-12-07", "2026-12-12", "실전 — 기출 47~53회 시간 재고 풀기"],
+    ["2026-12-13", "2026-12-13", "🎯 시험"]
+  ];
+  if (t0 > GUKSI) { document.getElementById("weekCard").hidden = true; }
+  else {
+    document.getElementById("weeks").innerHTML = W.map(function(w, i){
+      var cls = t0 >= w[0] && t0 <= w[1] ? "now" : t0 > w[1] ? "past" : "";
+      var lab = i < 4 ? (i + 1) + "주 " : "";
+      return '<li class="' + cls + '"><small>' + lab + w[0].slice(5).replace("-", "/") + (w[0] !== w[1] ? "~" + w[1].slice(8) : "") + "</small><span>" + w[2] + "</span></li>";
+    }).join("");
   }
-  const arr = Array.isArray(j) ? j : (j.cards || []); let added = 0, updated = 0;
-  const KEEP = ["box", "nextReview", "history"];
-  arr.filter(c => c && c.id && c.topic && Array.isArray(c.quiz)).forEach(nc => {
-    const i = S.cards.findIndex(c => c.id === nc.id);
-    if (i >= 0) { const old = S.cards[i]; const m = Object.assign({}, nc); KEEP.forEach(k => { if (old[k] != null) m[k] = old[k]; }); S.cards[i] = m; updated++; cloudPut("card", m.id, m); }
-    else { const m = Object.assign({ box: 0, nextReview: today(), history: [] }, nc); if (!m.nextReview) m.nextReview = today(); S.cards.push(m); added++; cloudPut("card", m.id, m); }
-  });
-  msg.textContent = "새 카드 " + added + "장, 고친 카드 " + updated + "장" + (user ? " — 계정에 저장해요." : " — 이 기기에 저장했어요(로그인하면 계정으로 올라가요).");
-}
-
-/* ============ 동작 ============ */
-document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-tab]"); if (t) return setTab(t.dataset.tab);
-  const b = e.target.closest("[data-act]"); if (!b) return;
-  const a = b.dataset.act, id = b.dataset.id;
-  if (a === "study") { const c = S.cards.find(x => x.id === id); if (c) startRun(c); return; }
-  if (a === "studyNext") { const ids = new Set(todayStudy().map(o => o.c.id)), c = due().find(x => !ids.has(x.id)); if (c) startRun(c); return; }
-  if (a === "exitRun") { stopVoice(); const was = run && run.histIdx != null; run = null; if (!was) lastDone = null; tab = "home"; return setTab("home"); }
-  if (a === "next") { stopVoice(); run.gate = true; render(); window.scrollTo(0, 0); return; }
-  if (a === "gateGo") { run.gate = false; run.step++; render(); window.scrollTo(0, 0); return; }
-  if (a === "pick") { run.picks[+b.dataset.q] = +b.dataset.c; return render(); }
-  if (a === "check") { run.checked = true; try { recordCard(); } catch (x) {} return render(); }
-  if (a === "speakConcept") return speak(run.card.concept);
-  if (a === "speakGrade") return speak(gradeSpeech(run.grade));
-  if (a === "mic") return micToggle(id);
-  if (a === "grade") return grade();
-  if (a === "regrade") { run.grade = null; return grade(); }
-  if (a === "finish") return finishCard();
-  if (a === "revStart") return reviewStart();
-  if (a === "revPick") { const it = rev.items[rev.i]; if (it.pick == null) { it.pick = +b.dataset.c; if (it.pick === it.answer) rev.right++; } return render(); }
-  if (a === "revNext") { rev.i++; if (rev.i >= rev.items.length) { rev.done = true; setDay(today(), { reviewDone: dayOf(today()).reviewDone + rev.items.length }); } render(); window.scrollTo(0, 0); return; }
-  if (a === "revExit") { rev = null; return render(); }
-  if (a === "saveFb") { const v = (($("#fbConf") || {}).value || "").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, " ").replace(/[\u201C\u201D\u201E\u2033]/g, '"').replace(/[\u2018\u2019\u2032]/g, "'"); try { const o = {}; v.replace(/\b(apiKey|authDomain|projectId|storageBucket|messagingSenderId|appId|measurementId)\b["']?\s*:\s*["']([^"'\s]+)["']/g, (m, k, val) => { o[k] = val; return m; }); if (!o.apiKey || !o.projectId) throw 0; cfg.firebase = JSON.stringify(o); saveCfg(); authErr = ""; await initFirebase(); } catch (x) { authErr = "설정값을 읽지 못했어요. Firebase 콘솔의 firebaseConfig { … } 부분을 그대로 붙여 넣어 주세요."; } render(); refreshEnv(); return; }
-  if (a === "clearFb") { cfg.firebase = ""; saveCfg(); try { fb && fb.auth().signOut(); } catch (x) {} user = null; location.reload(); return; }
-  if (a === "cloudCheck") return cloudCheck();
-  if (a === "google") return signInGoogle();
-  if (a === "emailIn") return signInEmail(false);
-  if (a === "emailUp") return signInEmail(true);
-  if (a === "signOut") { try { await fb.auth().signOut(); } catch (x) {} user = null; localLoad(); render(); refreshEnv(); return; }
-  if (a === "saveKey") { addKeys(($("#gkey") || {}).value); const m = ($("#gmodel") || {}).value; if (m) cfg.model = m; saveCfg(); $("#keyMsg").textContent = user ? "저장했어요. 내 계정에도 저장해서 다른 기기는 로그인만 하면 돼요." : "저장했어요(이 기기). 로그인하면 내 계정에도 저장돼요."; if (user) syncKey(); refreshEnv(); const msg = $("#keyMsg").textContent; render(); if ($("#keyMsg")) $("#keyMsg").textContent = msg; return; }
-  if (a === "copyLink") { const l = fbLink(); const box = $("#linkBox"); if (box) { box.value = l; box.classList.remove("hidden"); box.select(); } try { await navigator.clipboard.writeText(l); $("#linkMsg").textContent = "✅ 설정 링크를 복사했어요."; } catch (x) { $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
-  if (a === "copyConf") { try { await navigator.clipboard.writeText(cfg.firebase); $("#linkMsg").textContent = "✅ 설정값을 복사했어요. 새 앱의 ☁️ 칸에 붙여 넣으세요."; } catch (x) { const box = $("#linkBox"); if (box) { box.value = cfg.firebase; box.classList.remove("hidden"); box.select(); } $("#linkMsg").textContent = "아래 칸을 길게 눌러 복사하세요."; } return; }
-  if (a === "clearKey") { cfg.geminiKeys = []; saveCfg(); refreshEnv(); return render(); }
-  if (a === "delKey") { cfg.geminiKeys.splice(+id, 1); saveCfg(); if (user) syncKey(); refreshEnv(); return render(); }
-  if (a === "testKey") { addKeys(($("#gkey") || {}).value); const ks = GEMINI_API_KEYS(); if (!ks.length) { $("#keyMsg").textContent = gErr({ code: "nokey" }); return; } $("#keyMsg").textContent = "시험 중…"; const out = []; for (let i = 0; i < ks.length; i++) { try { const r = await geminiCall(ks[i], 'JSON만: {"ok":true}', 20000); out.push((i + 1) + "번 " + (r && r.ok ? "✅" : "⚠ 모양 다름")); delete keyCool[ks[i]]; } catch (x) { out.push((i + 1) + "번 " + ({ rate: "⏳ 사용량 참", key: "❌ 틀린 키", model: "❌ 모델 이름", busy: "⏳ 서버 붐빔" }[x && x.code] || "❌ " + ((x && (x.msg || x.code)) || "오류"))); } } $("#keyMsg").textContent = out.join(" · ") + " (" + cfg.model + ")"; refreshEnv(); return; }
-  if (a === "models") { addKeys(($("#gkey") || {}).value); try { const ms = await listModels(); const flash = ms.filter(m => /flash/.test(m) && !/image|tts|audio|live|embedding/.test(m)); const sel = $("#gmodel"); sel.innerHTML = (flash.length ? flash : ms).map(m => "<option" + (m === cfg.model ? " selected" : "") + ">" + esc(m) + "</option>").join(""); $("#keyMsg").textContent = "모델 " + (flash.length || ms.length) + "개 — 고른 뒤 「저장」을 누르세요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } return; }
-  if (a === "importCards") return importCards();
-  if (a === "saveQuota") { S.settings.quotaCards = Math.max(1, Math.min(60, parseInt($("#quota").value, 10) || 15)); cloudPut("user", "", { settings: S.settings }); renderHeader(); return render(); }
-  if (a === "exportAll") { const blob = new Blob([JSON.stringify({ exported: today(), cards: S.cards, days: S.days }, null, 1)], { type: "application/json" }); const u = URL.createObjectURL(blob); const l = document.createElement("a"); l.href = u; l.download = "국시퀘스트_기록_" + today() + ".json"; l.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); return; }
-});
-
-/* ============ 시작 ============ */
-localLoad(); renderHeader(); render(); refreshEnv();
-initFirebase().then(() => { refreshEnv(); render(); });
-if (window.speechSynthesis) speechSynthesis.getVoices();
+})();
 </script>
 </body>
 </html>
