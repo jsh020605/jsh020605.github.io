@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#7a3e9d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="법규">
+<title>법규 퀘스트</title>
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" type="image/png" href="../icon-180.png">
+<style>
+:root{--bg:#f7f5f9;--card:#fff;--ink:#22202a;--muted:#655f70;--line:#e4dfe9;--acc:#7a3e9d;--acc-soft:#f1e8f7;--ok:#2d8a5f;--ok-soft:#e3f4ec;--bad:#c2410c;--bad-soft:#fde9df;--f:"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15131a;--card:#1e1b25;--ink:#ebe7f0;--muted:#a69fb2;--line:#2f2a38;--acc:#c9a2e6;--acc-soft:#2c2238;--ok:#5cc495;--ok-soft:#173027;--bad:#fb8a5a;--bad-soft:#3a2219;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15131a;--card:#1e1b25;--ink:#ebe7f0;--muted:#a69fb2;--line:#2f2a38;--acc:#c9a2e6;--acc-soft:#2c2238;--ok:#5cc495;--ok-soft:#173027;--bad:#fb8a5a;--bad-soft:#3a2219;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15.5px;line-height:1.6;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}
+.page{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2,h3{margin:0;line-height:1.3} h1{font-size:26px;color:var(--acc)} h2{font-size:17px} h3{font-size:14px}
+button{font:inherit;color:inherit;cursor:pointer}
+.appnav{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.appnav a,.appnav span{padding:4px 12px;border-radius:99px;border:1px solid var(--line);text-decoration:none;color:var(--muted);white-space:nowrap}
+.appnav span[aria-current]{background:var(--acc);border-color:var(--acc);color:var(--card);font-weight:600}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.chip{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--acc-soft);color:var(--acc);white-space:nowrap}
+.chip.red{background:var(--bad);color:#fff}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.small{font-size:13px} .muted{color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:var(--card)}
+.btn.big{width:100%;padding:13px;font-size:16px}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.bar{height:10px;border-radius:99px;background:var(--acc-soft);overflow:hidden} .bar i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .3s}
+.bar.done i{background:var(--ok)}
+.pct{font-size:26px;font-weight:800;color:var(--acc)} .pct.ok{color:var(--ok)}
+.notice{background:var(--acc-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.notice.ok{background:var(--ok-soft)}
+ul.pts{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.list li{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+ul.list li .t{display:flex;flex-direction:column;min-width:0}
+h3.sub{font-size:14px;color:var(--acc);border-left:3px solid currentColor;padding-left:8px;margin-top:6px}
+.law{font-size:12.5px;color:var(--acc);font-weight:600}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:11px 13px;font-size:15px;line-height:1.45}
+.choice.right{border-color:var(--ok);background:var(--ok-soft)} .choice.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.choice.ox{text-align:center;font-size:22px;font-weight:800}
+.oxrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.why{border-radius:12px;padding:10px 12px;font-size:14px;background:var(--acc-soft)}
+.q{font-size:16.5px;font-weight:700;line-height:1.5}
+.steps{display:flex;gap:4px} .steps i{flex:1;height:5px;border-radius:9px;background:var(--line)} .steps i.on{background:var(--acc)} .steps i.ok{background:var(--ok)} .steps i.bad{background:var(--bad)}
+.score{font-size:40px;font-weight:800;color:var(--acc);text-align:center}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="page">
+  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../gq/">📚 국시 퀘스트</a><span aria-current="page">⚖️ 법규 퀘스트</span></nav>
+  <header class="top"><div class="row"><h1>⚖️ 법규 퀘스트</h1><span id="chips" class="row"></span></div><span class="small muted" id="sync"></span></header>
+  <main id="view" class="page" style="gap:12px"></main>
+  <p class="small muted" style="text-align:center">문제는 Claude가 수업 노트(장애인복지법·노인복지법·국민건강보험법)로 미리 만들어 넣었어요. 풀 때 AI를 쓰지 않아요.</p>
+</div>
+<script src="bank.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = n => String(n).padStart(2, "0"), today = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const diff = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const LAW_EXAM = "2026-11-30", QUIZ_N = 20;
+const TOPICS = (window.LAW && window.LAW.topics) || [], TB = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+const LAWS = [...new Set(TOPICS.map(t => t.law))];
+
+/* ---- 기록: 이 기기(localStorage) + 로그인돼 있으면 계정(users/{uid}/law/state) ---- */
+let S = Object.assign({ days: {}, topics: {}, wrong: [], settings: { quota: 6 } }, lsGet("law.v1", {}));
+let cfg = lsGet("gqw.cfg", {}), fb = null, fdb = null, user = null, syncMsg = "📱 이 기기에 저장", saveT = 0;
+const dayOf = d => S.days[d] || (S.days[d] = { ans: 0, ok: 0, topics: [] });
+function save() {
+  lsSet("law.v1", S);
+  if (!user || !fdb) return renderSync();
+  clearTimeout(saveT); syncMsg = "☁️ 저장 중…"; renderSync();
+  saveT = setTimeout(() => fdb.collection("users").doc(user.uid).collection("law").doc("state").set(JSON.parse(JSON.stringify(S))).then(() => { syncMsg = "☁️ 계정에 저장됨"; renderSync(); }).catch(e => { syncMsg = "⚠ 계정 저장 실패(" + (e.code || "오류") + ")"; renderSync(); }), 600);
+}
+function merge(c) {
+  if (!c) return;
+  Object.entries(c.days || {}).forEach(([d, x]) => { const m = S.days[d]; if (!m || (x.ans || 0) > (m.ans || 0)) S.days[d] = x; else if (x.quiz && (!m.quiz || (x.quiz.score || 0) > (m.quiz.score || 0))) m.quiz = x.quiz; });
+  Object.entries(c.topics || {}).forEach(([id, x]) => { const m = S.topics[id]; if (!m || (x.n || 0) > (m.n || 0)) S.topics[id] = x; });
+  S.wrong = [...new Set([...(S.wrong || []), ...(c.wrong || [])])];
+  if (c.settings) S.settings = Object.assign({}, S.settings, c.settings);
+}
+function renderSync() { const e = $("#sync"); if (e) e.textContent = syncMsg; }
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function initFb() {
+  if (!cfg.firebase) { syncMsg = "📱 이 기기에 저장 (국시 퀘스트 설정에서 로그인하면 계정에도)"; return renderSync(); }
+  try {
+    const B = "https://www.gstatic.com/firebasejs/10.12.2/";
+    await loadScript(B + "firebase-app-compat.js"); await loadScript(B + "firebase-auth-compat.js"); await loadScript(B + "firebase-firestore-compat.js");
+    fb = window.firebase; if (!fb.apps.length) fb.initializeApp(JSON.parse(cfg.firebase));
+    fdb = fb.firestore(); try { fdb.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
+    fb.auth().onAuthStateChanged(async u => {
+      user = u || null;
+      if (!user) { syncMsg = "📱 이 기기에 저장 (로그인은 국시 퀘스트 설정에서)"; return renderSync(); }
+      try { const d = await fdb.collection("users").doc(user.uid).collection("law").doc("state").get(); if (d.exists) merge(d.data()); save(); render(); }
+      catch (e) { syncMsg = "⚠ 계정에서 못 불러옴(" + (e.code || "오류") + ")"; renderSync(); }
+    });
+  } catch (e) { syncMsg = "📱 이 기기에 저장 (Firebase 연결 실패)"; renderSync(); }
+}
+
+/* ---- 공부 순서: 안 한 주제 먼저(노트 순서), 다 했으면 가장 오래전에 한 주제 ---- */
+function nextTopic() {
+  const fresh = TOPICS.find(t => !S.topics[t.id]);
+  if (fresh) return fresh;
+  return TOPICS.slice().sort((a, b) => String(S.topics[a.id].last).localeCompare(String(S.topics[b.id].last)) || (S.topics[a.id].n - S.topics[b.id].n))[0];
+}
+const quotaMet = () => dayOf(today()).ans >= S.settings.quota;
+
+/* ---- 화면 상태 ---- */
+let view = "home", run = null, quiz = null;
+function startTopic(id, onlyWrong) {
+  const t = TB[id]; if (!t) return;
+  const qs = t.p.map((p, i) => ({ key: t.id + "p" + i, q: p[0], choices: shuffle(p[1].map((c, j) => ({ c, ok: j === p[2] }))), why: p[3] }));
+  run = { t, qs, i: 0, card: true, pick: null, res: [] }; view = "run"; render(); window.scrollTo(0, 0);
+}
+function startWrong() {
+  const qs = (S.wrong || []).map(k => { const m = k.match(/^(.+)p(\d+)$/), t = m && TB[m[1]], p = t && t.p[+m[2]]; return p ? { key: k, tid: t.id, q: p[0], choices: shuffle(p[1].map((c, j) => ({ c, ok: j === p[2] }))), why: p[3] } : null; }).filter(Boolean);
+  if (!qs.length) return;
+  run = { t: { id: "_wrong", law: "복습", title: "틀린 문제 다시 풀기", pts: [] }, qs: shuffle(qs).slice(0, 10), i: 0, card: false, pick: null, res: [], wrongRun: true };
+  view = "run"; render(); window.scrollTo(0, 0);
+}
+function answer(j) {
+  if (!run || run.pick != null) return;
+  const q = run.qs[run.i], ok = q.choices[j].ok; run.pick = j; run.res.push(ok);
+  const x = dayOf(today()); x.ans++; if (ok) x.ok++;
+  const w = new Set(S.wrong || []); if (ok) { if (run.wrongRun) w.delete(q.key); } else w.add(q.key); S.wrong = [...w];
+  save(); render();
+}
+function nextQ() {
+  run.i++; run.pick = null;
+  if (run.i < run.qs.length) return render();
+  if (!run.wrongRun) {
+    const d = today(), x = dayOf(d), st = S.topics[run.t.id] || { n: 0, ok: 0, ans: 0 };
+    st.n++; st.last = d; st.ans += run.res.length; st.ok += run.res.filter(Boolean).length; S.topics[run.t.id] = st;
+    if (!x.topics.includes(run.t.id)) x.topics.push(run.t.id);
+  }
+  lastRun = { title: run.t.title, ok: run.res.filter(Boolean).length, n: run.res.length };
+  save(); run = null; view = "home"; render(); window.scrollTo(0, 0);
+}
+let lastRun = null;
+
+/* ---- 쪽지시험: 오늘(+그동안) 공부한 주제의 '재료'로 새 문제를 만든다. 연습문제는 다시 내지 않는다 ---- */
+function buildQuiz() {
+  const d = today(), todayIds = dayOf(d).topics, studied = TOPICS.filter(t => S.topics[t.id]).map(t => t.id);
+  const facts = id => (TB[id].f || []).map(f => ({ id, f }));
+  const seq = [...shuffle(todayIds.flatMap(facts)), ...shuffle(studied.filter(id => !todayIds.includes(id)).flatMap(facts))];
+  const mk = (o, ox) => {
+    const [stem, ans, ds] = o.f, t = TB[o.id];
+    if (ox) { const truth = Math.random() < 0.5, val = truth ? ans : ds[Math.floor(Math.random() * ds.length)]; return { law: t.law, title: t.title, ox: true, q: "「" + stem + "」 = " + val, choices: [{ c: "O", ok: truth }, { c: "X", ok: !truth }], why: "정답: " + ans }; }
+    return { law: t.law, title: t.title, ox: false, q: "「" + stem + "」으로 옳은 것은?", choices: shuffle([{ c: ans, ok: true }, ...ds.slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + ans };
+  };
+  const items = [], forms = seq.map(() => Math.random() < 0.35);
+  seq.forEach((o, i) => { if (items.length < QUIZ_N) items.push(mk(o, forms[i])); });
+  seq.forEach((o, i) => { if (items.length < QUIZ_N) items.push(mk(o, !forms[i])); }); // 재료가 모자라면 같은 내용을 다른 형식(OX↔4지선다)으로
+  return shuffle(items).slice(0, QUIZ_N);
+}
+function startQuiz() { const items = buildQuiz(); if (!items.length) return; quiz = { items, i: 0, pick: null, res: [] }; view = "quiz"; render(); window.scrollTo(0, 0); }
+function quizAnswer(j) { if (!quiz || quiz.pick != null) return; const it = quiz.items[quiz.i]; quiz.pick = j; it.pick = j; quiz.res.push(it.choices[j].ok); render(); }
+function quizNext() {
+  quiz.i++; quiz.pick = null;
+  if (quiz.i < quiz.items.length) return render();
+  const score = quiz.res.filter(Boolean).length, x = dayOf(today());
+  if (!x.quiz || score >= (x.quiz.score || 0)) x.quiz = { score, total: quiz.items.length, at: new Date().toISOString() };
+  save(); view = "result"; render(); window.scrollTo(0, 0);
+}
+
+/* ---- 그리기 ---- */
+function render() {
+  const t0 = today(), n = diff(t0, LAW_EXAM);
+  $("#chips").innerHTML = n >= 0 ? '<span class="chip' + (n <= 7 ? " red" : "") + '">법규 기말 ' + (n ? "D-" + n : "D-DAY") + "</span>" : "";
+  renderSync();
+  const v = $("#view");
+  if (!TOPICS.length) { v.innerHTML = '<div class="notice">문제 파일(bank.js)을 못 불러왔어요. law 폴더에 bank.js가 같이 올라갔는지 확인해 주세요.</div>'; return; }
+  v.innerHTML = view === "run" ? viewRun() : view === "quiz" ? viewQuiz() : view === "result" ? viewResult() : view === "topics" ? viewTopics() : view === "settings" ? viewSettings() : viewHome();
+}
+function viewHome() {
+  const t0 = today(), x = dayOf(t0), q = S.settings.quota, pct = Math.min(100, Math.round(Math.min(x.ans, q) / q * 100)), met = x.ans >= q, nt = nextTopic();
+  const done = TOPICS.filter(t => S.topics[t.id]).length;
+  let h = "";
+  if (lastRun) h += '<div class="notice ok">✅ <b>' + esc(lastRun.title) + "</b> 끝 · " + lastRun.n + "문제 중 " + lastRun.ok + "개 맞음</div>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "할당량 완료! 아래 쪽지시험을 볼 수 있어요." : "문제 " + Math.min(x.ans, q) + "/" + q + " — " + (q - x.ans) + "문제 더 풀면 쪽지시험이 열려요") + " · 오늘 맞힌 문제 " + x.ok + "개</p>" +
+    '<button class="btn primary big" data-act="next">' + (S.topics[nt.id] ? "복습하기 → " : "이어서 공부하기 → ") + esc(nt.law) + " · " + esc(nt.title) + "</button></section>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 ' + QUIZ_N + '문제</h2>' + (x.quiz ? '<span class="chip">최고 ' + x.quiz.score + "/" + x.quiz.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 <b>새 문제</b>가 나와요(연습문제와 다른 4지선다·OX). 모자라면 그동안 공부한 주제에서 채워요.</p>' +
+    '<button class="btn big' + (met ? " primary" : "") + '" data-act="quiz"' + (met ? "" : " disabled") + ">" + (met ? (x.quiz ? "다시 보기" : "쪽지시험 시작") : "🔒 할당량을 채우면 열려요") + "</button></section>";
+  const todayT = x.topics.map(id => TB[id]).filter(Boolean);
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 오늘 한 주제</h2><span class="chip">' + todayT.length + "개</span></div>" + (todayT.length ? '<ul class="list">' + todayT.map(t => '<li><span class="t"><span class="law">' + esc(t.law) + "</span><b>" + esc(t.title) + '</b></span><button class="btn sm" data-act="study" data-id="' + t.id + '">다시</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">아직 없어요.</p>') + "</section>";
+  const wn = (S.wrong || []).length;
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🔁 틀린 문제</h2><span class="chip">' + wn + "개</span></div>" + (wn ? '<button class="btn" data-act="wrong">틀린 문제 다시 풀기 (최대 10개)</button><p class="small muted" style="margin:0">맞히면 목록에서 빠져요.</p>' : '<p class="small muted" style="margin:0">없어요.</p>') + "</section>";
+  h += '<div class="row"><button class="btn" data-act="topics">📚 주제 전체 보기 (' + done + "/" + TOPICS.length + ')</button><button class="btn ghost" data-act="settings">⚙️ 하루 문제 수</button></div>';
+  return h;
+}
+function viewTopics() {
+  return '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📚 주제 전체</h2><button class="btn sm ghost" data-act="home">닫기</button></div>' +
+    LAWS.map(L => '<h3 class="sub">' + esc(L) + "</h3><ul class=\"list\">" + TOPICS.filter(t => t.law === L).map(t => { const s = S.topics[t.id]; return '<li><span class="t"><b>' + esc(t.title) + '</b><span class="small muted">' + (s ? "공부 " + s.n + "번 · 맞힘 " + s.ok + "/" + s.ans : "아직 안 함") + '</span></span><button class="btn sm" data-act="study" data-id="' + t.id + '">' + (s ? "다시" : "시작") + "</button></li>"; }).join("") + "</ul>").join("") + "</section>";
+}
+function viewSettings() {
+  return '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>⚙️ 하루 문제 수</h2><button class="btn sm ghost" data-act="home">닫기</button></div><p class="small muted" style="margin:0">주제 하나에 연습문제 3개예요. 5개 이상으로 정해요.</p><div class="row">' +
+    [6, 9, 12, 15].map(k => '<button class="btn' + (S.settings.quota === k ? " primary" : "") + '" data-act="quota" data-id="' + k + '">' + k + "문제</button>").join("") + "</div></section>";
+}
+function steps(res, i, total) { let s = ""; for (let k = 0; k < total; k++) s += "<i class=\"" + (k < res.length ? (res[k] ? "ok" : "bad") : k === i ? "on" : "") + "\"></i>"; return '<div class="steps">' + s + "</div>"; }
+function viewRun() {
+  const r = run, t = r.t;
+  let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><div><span class="law">' + esc(t.law) + "</span><h2>" + esc(t.title) + '</h2></div><button class="btn sm ghost" data-act="exit">나가기</button></div>';
+  if (r.card) return h + '<ul class="pts">' + t.pts.map(p => "<li>" + esc(p) + "</li>").join("") + '</ul><button class="btn primary big" data-act="toQ">문제 풀기 (' + r.qs.length + "문제) →</button></section>";
+  const q = r.qs[r.i];
+  h += steps(r.res, r.i, r.qs.length) + '<div class="q">' + (r.i + 1) + ". " + esc(q.q) + '</div><div class="choices">' +
+    q.choices.map((c, j) => '<button class="choice' + (r.pick != null ? (c.ok ? " right" : j === r.pick ? " wrong" : "") : "") + '" data-act="ans" data-id="' + j + '"' + (r.pick != null ? " disabled" : "") + ">" + (j + 1) + ". " + esc(c.c) + "</button>").join("") + "</div>";
+  if (r.pick != null) h += '<div class="why">' + (q.choices[r.pick].ok ? "⭕ 맞았어요. " : "❌ 틀렸어요. 정답: " + esc(q.choices.find(c => c.ok).c) + "<br>") + esc(q.why || "") + '</div><button class="btn primary big" data-act="nextQ">' + (r.i + 1 < r.qs.length ? "다음 문제 →" : "끝내기") + "</button>";
+  return h + "</section>";
+}
+function viewQuiz() {
+  const z = quiz, it = z.items[z.i];
+  let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 ' + (z.i + 1) + "/" + z.items.length + '</h2><button class="btn sm ghost" data-act="exit">그만하기</button></div>' + steps(z.res, z.i, z.items.length) +
+    '<span class="law">' + esc(it.law) + " · " + esc(it.title) + "</span>" + (it.ox ? '<div class="small muted">맞으면 O, 틀리면 X</div>' : "") + '<div class="q">' + esc(it.q) + "</div>" +
+    '<div class="' + (it.ox ? "oxrow" : "choices") + '">' + it.choices.map((c, j) => '<button class="choice' + (it.ox ? " ox" : "") + (z.pick != null ? (c.ok ? " right" : j === z.pick ? " wrong" : "") : "") + '" data-act="qans" data-id="' + j + '"' + (z.pick != null ? " disabled" : "") + ">" + (it.ox ? "" : (j + 1) + ". ") + esc(c.c) + "</button>").join("") + "</div>";
+  if (z.pick != null) h += '<div class="why">' + (it.choices[z.pick].ok ? "⭕ 맞았어요. " : "❌ 틀렸어요. ") + esc(it.why) + '</div><button class="btn primary big" data-act="qnext">' + (z.i + 1 < z.items.length ? "다음 →" : "결과 보기") + "</button>";
+  return h + "</section>";
+}
+function viewResult() {
+  const z = quiz, score = z.res.filter(Boolean).length, wrong = z.items.filter(it => it.pick != null && !it.choices[it.pick].ok);
+  return '<section class="sheet"><h2>📝 쪽지시험 결과</h2><div class="score">' + score + " / " + z.items.length + '</div><div class="bar' + (score === z.items.length ? " done" : "") + '"><i style="width:' + Math.round(score / z.items.length * 100) + '%"></i></div>' +
+    (wrong.length ? '<h3 class="sub">틀린 것 ' + wrong.length + '개</h3><ul class="list">' + wrong.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="law">' + esc(it.law) + " · " + esc(it.title) + "</span><b>" + esc(it.q) + '</b><span class="small">내 답: ' + esc(it.choices[it.pick].c) + " · " + esc(it.why) + "</span></li>").join("") + "</ul>" : '<div class="notice ok">전부 맞았어요! 👏</div>') +
+    '<div class="row"><button class="btn primary" data-act="quiz">한 번 더 (새로 섞기)</button><button class="btn" data-act="home">처음으로</button></div></section>';
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  if (a === "next") return startTopic(nextTopic().id);
+  if (a === "study") return startTopic(id);
+  if (a === "toQ") { run.card = false; return render(); }
+  if (a === "ans") return answer(+id);
+  if (a === "nextQ") return nextQ();
+  if (a === "exit") { run = null; quiz = null; view = "home"; return render(); }
+  if (a === "quiz") { if (quotaMet()) startQuiz(); return; }
+  if (a === "qans") return quizAnswer(+id);
+  if (a === "qnext") return quizNext();
+  if (a === "wrong") return startWrong();
+  if (a === "topics" || a === "settings" || a === "home") { view = a; lastRun = a === "home" ? lastRun : null; render(); window.scrollTo(0, 0); return; }
+  if (a === "quota") { S.settings.quota = Math.max(5, +id || 6); save(); view = "home"; return render(); }
+});
+render(); initFb();
+</script>
+</body>
+</html>

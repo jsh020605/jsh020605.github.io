@@ -79,11 +79,12 @@ ul.list .t{display:flex;flex-direction:column;min-width:0} ul.list .t b{overflow
 .env{font-size:12px;color:var(--muted);text-align:center}
 .hidden{display:none!important}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+h3.sub{font-size:13.5px;margin:10px 0 4px;color:var(--blue,#2f4b8a);border-left:3px solid currentColor;padding-left:7px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../cal/#jobs">💼 채용 공고</a><span aria-current="page">📚 국시 퀘스트</span><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
+  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../cal/#jobs">💼 채용 공고</a><span aria-current="page">📚 국시 퀘스트</span><a href="../law/">⚖️ 법규 퀘스트</a><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
   <header class="top">
     <div class="brand"><b>국시 퀘스트</b><small id="dday"></small></div>
     <div class="row"><span class="fire" id="streak">0</span><span class="small muted">일 연속 🔥</span></div>
@@ -211,7 +212,25 @@ const dayOf = d => Object.assign({ cardsDone: 0, reviewDone: 0, met: false }, S.
 const isMet = d => dayOf(d).cardsDone >= S.settings.quotaCards;
 function setDay(d, patch) { const x = Object.assign(dayOf(d), patch); x.met = x.cardsDone >= S.settings.quotaCards; S.days[d] = x; cloudPut("day", d, x); }
 function streak() { let n = 0, d = today(); if (!isMet(d)) d = addDays(d, -1); while (S.days[d] && S.days[d].met) { n++; d = addDays(d, -1); } return n; }
-const due = () => S.cards.filter(c => (c.nextReview || "0") <= today()).sort((a, b) => String(a.nextReview || "").localeCompare(String(b.nextReview || "")));
+/* 과목 묶음: 공중보건학·피부물리치료(안 배운 과목)를 맨 앞에, 법규는 법규 퀘스트(../law/)에서만 한다 */
+const GROUPS = ["공중보건학", "피부물리치료", "해부학", "운동학(뉴만)", "전기치료", "심폐", "기타"];
+const isLaw = c => /법규|의료법|의료기사|복지법|건강보험/.test(String(c.subject || ""));
+function grpOf(c) {
+  const s = String(c.subject || "") + " " + String(c.topic || "");
+  if (/공중보건|보건학|역학|보건교육/.test(s)) return "공중보건학";
+  if (/피부|화상|욕창|상처/.test(s)) return "피부물리치료";
+  if (/해부|생리/.test(String(c.subject || ""))) return "해부학";
+  if (/운동학|뉴만|근골격|Neumann/i.test(String(c.subject || ""))) return "운동학(뉴만)";
+  if (/전기|광선|열치료|물리적 인자/.test(String(c.subject || ""))) return "전기치료";
+  if (/심폐|호흡|심장/.test(String(c.subject || ""))) return "심폐";
+  return "기타";
+}
+const byNext = (a, b) => String(a.nextReview || "").localeCompare(String(b.nextReview || ""));
+const due = () => {
+  const g = {}; S.cards.filter(c => !isLaw(c) && (c.nextReview || "0") <= today()).sort(byNext).forEach(c => (g[grpOf(c)] = g[grpOf(c)] || []).push(c));
+  const out = []; for (let i = 0; GROUPS.some(k => g[k] && g[k][i]); i++) GROUPS.forEach(k => { if (g[k] && g[k][i]) out.push(g[k][i]); }); // 과목을 번갈아 섞기
+  return out;
+};
 const todayStudy = () => { const t0 = today(); return S.cards.map(c => ({ c, h: (c.history || []).filter(x => x.date === t0).slice(-1)[0] })).filter(x => x.h); };
 
 /* ============ Gemini ============ */
@@ -315,8 +334,11 @@ function micToggle(target) {
 }
 function micUI() { document.querySelectorAll(".btn.mic").forEach(b => { b.setAttribute("aria-pressed", String(recOn)); b.textContent = recOn ? "⏹ 그만 말하기" : "🎤 말하기"; }); }
 function stopVoice() { try { recOn && rec && rec.stop(); } catch (e) {} try { speechSynthesis.cancel(); } catch (e) {} }
+let voiceOn = lsGet("gqw.voice", true) !== false; // 🔊 읽어 주기 켜기/끄기 (이 기기에 기억)
+function toggleVoice() { voiceOn = !voiceOn; lsSet("gqw.voice", voiceOn); if (!voiceOn) { try { speechSynthesis.cancel(); } catch (e) {} } render(); }
+const voiceBtn = () => window.speechSynthesis ? '<button class="btn sm ghost" data-act="voice" aria-pressed="' + voiceOn + '">' + (voiceOn ? "🔊 소리 켬" : "🔇 소리 끔") + "</button>" : "";
 function speak(text) {
-  if (!window.speechSynthesis || !text) return;
+  if (!window.speechSynthesis || !text || !voiceOn) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(text).slice(0, 1800)); u.lang = "ko-KR"; const v = speechSynthesis.getVoices().find(x => /^ko/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
 }
 function unlockSpeech() { try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
@@ -335,11 +357,12 @@ function refreshEnv() {
   const where = user ? "☁️ 내 계정(" + (user.email || "Google") + ")" : (fb ? "📱 이 기기만 — 설정에서 로그인하면 핸드폰·맥이 같은 기록" : "📱 이 기기만 — 설정에서 Firebase를 연결하세요");
   $("#env").textContent = "저장: " + where + " · 이 기기 카드 " + S.cards.length + "장" + (pending ? " · 보내는 중 " + pending : "") + (cloudStat ? " · " + cloudStat : "") + " · 채점: " + (GEMINI_API_KEYS().length ? "Gemini 키 " + GEMINI_API_KEYS().length + "개" : "키 없음");
 }
-function setTab(t) { tab = t; run = null; rev = null; document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); render(); window.scrollTo(0, 0); }
+function setTab(t) { tab = t; run = null; rev = null; drill = null; document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); render(); window.scrollTo(0, 0); }
 function render() {
   const v = $("#view");
   if (run) { v.innerHTML = viewRun(); const t = $("#explainIn"); if (t) t.addEventListener("input", () => { run.explain = t.value; }); return; }
   if (rev) { v.innerHTML = viewReview(); return; }
+  if (drill) { v.innerHTML = viewDrill(); return; }
   v.innerHTML = tab === "cards" ? viewCards() : tab === "settings" ? viewSettings() : viewHome();
   const cf = $("#cardFilter"); if (cf) cf.addEventListener("input", () => { cardFilter = cf.value; const pos = cf.selectionStart; render(); const n = $("#cardFilter"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } });
 }
@@ -353,8 +376,12 @@ function viewHome() {
   if (!user) h += '<div class="notice">' + (fb ? "로그인하지 않아 이 기기에만 저장돼요. <b>설정</b>에서 로그인하면 핸드폰·맥이 같은 기록을 봐요." : "아직 Firebase가 연결되지 않아 이 기기에만 저장돼요. <b>설정</b>에서 연결해 주세요.") + "</div>";
   if (lastDone) h += '<div class="notice ok">✅ 카드 완료: <b>' + esc(lastDone.topic) + "</b> · 퀴즈 " + esc(lastDone.quiz) + " 맞음" + (lastDone.explain != null ? " · 설명 " + lastDone.explain + "점" : "") + " · 다음 복습 " + md(lastDone.next) + '<br><span class="small">' + ({ saved: "☁️ 계정에 저장됨", saving: "☁️ 저장 중…", local: "📱 이 기기에만 저장됨", failed: "⚠ 계정 저장 실패 — 연결되면 다시 보내요" }[saveState] || "") + "</span></div>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "🔥 오늘 할당량 완료! 연속 " + streak() + "일째" : "카드 " + Math.min(x.cardsDone, q) + "/" + q + " — " + (q - x.cardsDone) + "장 더 하면 완료") + (x.reviewDone ? " · 복습 " + x.reviewDone + "문제" : "") + "</p></section>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🧠 오늘 내용 복습 ' + DRILL_N + '문제</h2>' + (x.drill ? '<span class="chip ok">최고 ' + x.drill.score + "/" + x.drill.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 카드 내용으로 Gemini가 <b>새 문제</b>를 만들어요(카드 퀴즈와 다른 문제).</p><button class="btn' + (met ? " omr" : "") + '" data-act="drillStart"' + (met ? "" : " disabled") + ">" + (met ? (x.drill ? "다시 풀기 (새 문제)" : "복습 30문제 시작") : "🔒 오늘 할당량을 채우면 열려요") + "</button></section>";
+  const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
+  if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
+  h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">법규 퀘스트</a>에서 따로 해요.</p>';
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
-    (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div><ul class="list">' + before.slice(0, 15).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
+    (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + GROUPS.filter(k => before.some(c => grpOf(c) === k)).map(k => { const l = before.filter(c => grpOf(c) === k); return '<h3 class="sub">' + k + ' <span class="small muted">' + l.length + "장</span></h3>" + '<ul class="list">' + l.slice(0, 6).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + (l.length > 6 ? '<li class="small muted">… ' + (l.length - 6) + "장 더</li>" : "") + "</ul>"; }).join("") : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
   const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 학습 완료</h2><span class="chip ok">' + done.length + "장</span></div>" +
     (done.length ? '<ul class="list">' + done.slice().reverse().map(({ c, h: r }) => '<li style="flex-direction:column;align-items:stretch"><div class="row" style="justify-content:space-between"><b>' + esc(c.topic) + '</b><span class="small muted">퀴즈 ' + esc(r.quiz) + " 맞음" + (r.explain != null ? " · 설명 " + r.explain + "점" : "") + "</span></div>" +
@@ -395,11 +422,11 @@ function viewRun() {
     const all = (c.quiz || []).every((_, i) => run.picks[i] != null);
     h += run.checked ? '<div class="row"><span class="chip ' + (quizScore() === (c.quiz || []).length ? "ok" : "") + '">' + quizScore() + " / " + (c.quiz || []).length + ' 맞음</span><button class="btn primary" data-act="next">다음 섹션으로 →</button></div>' : '<div class="row"><button class="btn omr" data-act="check"' + (all ? "" : " disabled") + ">채점하기</button></div>";
   } else {
-    h += '<div class="sheet" style="padding:12px"><h3>🗣 ' + esc(c.explainPrompt || "이 개념을 30초 안에 소리 내어 설명해 보세요.") + '</h3><p class="small muted" style="margin:0">교재를 보지 말고 면접에서 말하듯 설명하세요. 말한 내용이 아래에 적혀요.</p><div class="row">' + micBtn("explainIn") + '</div><textarea id="explainIn" placeholder="말하거나 직접 써도 돼요.">' + esc(run.explain) + "</textarea></div>";
+    h += '<div class="row" style="justify-content:flex-end">' + voiceBtn() + '</div><div class="sheet" style="padding:12px"><h3>🗣 ' + esc(c.explainPrompt || "이 개념을 30초 안에 소리 내어 설명해 보세요.") + '</h3><p class="small muted" style="margin:0">교재를 보지 말고 면접에서 말하듯 설명하세요. 말한 내용이 아래에 적혀요.</p><div class="row">' + micBtn("explainIn") + '</div><textarea id="explainIn" placeholder="말하거나 직접 써도 돼요.">' + esc(run.explain) + "</textarea></div>";
     if (run.grade) {
       const g = run.grade;
-      h += '<div class="row" style="align-items:flex-end;gap:10px"><span class="score">' + (g.score | 0) + '</span><span class="small muted">/ 100 · Gemini 채점</span>' + (window.speechSynthesis ? '<button class="btn sm" data-act="speakGrade">🔊 다시 듣기</button>' : "") + "</div>" + (g.summary ? '<p class="concept small" style="margin:0">' + esc(g.summary) + "</p>" : "") +
-        block("✅ 맞았어요", g.good, "ok") + block("❗ 안 말한 부분 (설명)", g.missing, "warn") + block("✖ 틀리게 말한 부분 (바로잡기)", g.wrong, "no") + (g.better ? '<div class="gb"><h3>이렇게 말하면 더 좋아요</h3><p class="small" style="margin:4px 0 0">' + esc(g.better) + "</p></div>" : "") +
+      h += '<div class="row" style="align-items:flex-end;gap:10px"><span class="score">' + (g.score | 0) + '</span><span class="small muted">/ 100 · Gemini 채점</span>' + (window.speechSynthesis && voiceOn ? '<button class="btn sm" data-act="speakGrade">🔊 다시 듣기</button>' : "") + "</div>" + (g.summary ? '<p class="concept small" style="margin:0">' + esc(g.summary) + "</p>" : "") +
+        (!asArr(g.missing).length && !asArr(g.wrong).length ? '<div class="notice ok">틀리거나 빠뜨린 부분이 없어요 👏</div>' : "") + block("❗ 안 말한 부분 (설명)", g.missing, "warn") + block("✖ 틀리게 말한 부분 (바로잡기)", g.wrong, "no") + (g.better ? '<div class="gb"><h3>이렇게 말하면 더 좋아요</h3><p class="small" style="margin:4px 0 0">' + esc(g.better) + "</p></div>" : "") +
         '<div class="row"><button class="btn omr" data-act="finish">카드 끝내기 → 홈</button><button class="btn ghost" data-act="regrade">다시 채점</button></div>';
     } else {
       h += '<div class="row"><button class="btn omr" data-act="grade"' + (run.busy ? " disabled" : "") + ">" + (run.busy ? esc(run.busyMsg || "Gemini가 채점하는 중…") : "✅ 채점 받기") + '</button><button class="btn" data-act="finish">카드 끝내기 (채점 없이)</button></div>';
@@ -410,8 +437,8 @@ function viewRun() {
 }
 function gradeSpeech(g) {
   const pick = (arr, k) => (arr || []).map(x => x && typeof x === "object" ? x[k] : x).filter(Boolean);
-  let t = (g.score | 0) + "점이에요. " + (g.summary || "");
-  const ok = pick(g.good, "point"); if (ok.length) t += " 이건 맞았어요: " + ok.join(", ") + ".";
+  let t = (g.score | 0) + "점이에요. "; // 맞은 부분은 읽지 않고 틀린·빠뜨린 부분만
+  if (!asArr(g.missing).length && !asArr(g.wrong).length) return t + "틀리거나 빠뜨린 부분이 없어요.";
   (g.missing || []).forEach(m => { t += " 안 말한 부분, " + (typeof m === "object" ? (m.point || "") + ". " + (m.explain || "") : m); });
   (g.wrong || []).forEach(w => { t += " 바로잡을 부분, " + (typeof w === "object" ? (w.said || "") + ". " + (w.fix || "") : w); });
   return t;
@@ -422,7 +449,7 @@ async function grade() {
   unlockSpeech(); stopVoice(); run.busy = true; run.busyMsg = ""; run.err = ""; render();
   const c = run.card;
   const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 우리말 용어로 말해도 인정한다. 한국어로.\n\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
-    "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 소리 내어 읽어 줄 총평 1~2문장(존댓말). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
+    "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 틀리거나 빠뜨린 것만 짚는 1문장(존댓말, 맞은 내용은 말하지 않는다. 다 맞았으면 빈칸). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
     'JSON만: {"score":0~100 정수,"summary":"","good":[{"point":"","why":""}],"missing":[{"point":"","explain":""}],"wrong":[{"said":"","fix":""}],"better":""}';
   try { run.grade = await gemini(prompt, 45000, m => { run.busyMsg = m; render(); }); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
   catch (e) { run.err = gErr(e); }
@@ -479,6 +506,29 @@ function viewReview() {
     (it.pick != null ? '<div class="why">' + (it.pick === it.answer ? "정답! " : "정답은 " + (it.answer + 1) + "번. ") + esc(it.why) + '</div><div class="row"><button class="btn primary" data-act="revNext">' + (rev.i + 1 < rev.items.length ? "다음 →" : "복습 끝내기") + "</button></div>" : "") + "</div></section>";
 }
 
+/* ============ 오늘 내용 복습 30문제 (할당량 채우면) ============ */
+const DRILL_N = 30;
+let drill = null;
+async function drillStart() {
+  const cards = todayStudy().map(o => o.c); if (!cards.length) return;
+  drill = { items: [], i: 0, right: 0, busy: true, err: "", done: false, busyMsg: "" }; render(); window.scrollTo(0, 0);
+  const data = cards.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints), alreadyAsked: asArr(c.quiz).map(q => q.q) }));
+  const prompt = "학생이 오늘 공부한 카드들이다. 같은 내용을 다른 각도로 묻는 한국 물리치료사 국가시험형 5지선다 " + DRILL_N + "문제를 만든다. 한국어로.\n규칙: alreadyAsked(이미 낸 문제)와 같은 문제·같은 표현은 내지 않는다. 같은 개념이라도 묻는 점(정의·숫자·짝·임상 적용·함정·비교)을 바꾼다. 카드마다 고르게 나눈다. 숫자·용어는 concept에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장.\n오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  try { const arr = await gemini(prompt, 120000, m => { drill.busyMsg = m; render(); }); drill.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).slice(0, DRILL_N).map(x => ({ topic: String(x.topic || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
+  catch (e) { drill.err = gErr(e) + " 오늘 카드의 원래 문제로 대신 풀어요."; }
+  if (!drill.items.length) drill.items = cards.flatMap(c => asArr(c.quiz).map(q => ({ topic: c.topic, q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null })));
+  drill.busy = false; render();
+}
+function viewDrill() {
+  const d = drill;
+  if (d.busy) return '<section class="sheet"><h2>🧠 오늘 내용 복습 준비 중…</h2>' + (d.busyMsg ? '<p class="small">' + esc(d.busyMsg) + "</p>" : "") + '<p class="small muted">Gemini가 오늘 공부한 내용으로 새 문제 ' + DRILL_N + "개를 만들고 있어요. (30~60초)</p></section>";
+  if (d.done || !d.items.length) { const wr = d.items.filter(it => it.pick != null && it.pick !== it.answer); return '<section class="sheet"><div class="gate"><div class="big">🧠 오늘 복습 끝!</div><div class="sub">' + d.right + " / " + d.items.length + ' 맞음</div></div>' + (wr.length ? '<h3>틀린 것 ' + wr.length + '개</h3><ul class="list">' + wr.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="small muted">' + esc(it.topic) + "</span><b>" + esc(it.q) + '</b><span class="small">정답: ' + esc(it.choices[it.answer]) + " — " + esc(it.why) + "</span></li>").join("") + "</ul>" : "") + '<div class="row"><button class="btn omr" data-act="drillExit">🏠 홈으로</button></div></section>'; }
+  const it = d.items[d.i];
+  return '<section class="sheet"><div class="row" style="justify-content:space-between"><span class="chip">🧠 ' + (d.i + 1) + " / " + d.items.length + '</span><button class="btn ghost" data-act="drillExit">나가기</button></div>' + (d.err ? '<div class="notice">' + esc(d.err) + "</div>" : "") + '<span class="small muted">' + esc(it.topic) + '</span><div class="q"><p>' + esc(it.q) + '</p><div class="opts">' +
+    it.choices.map((ch, ci) => { let cls = "opt"; if (it.pick != null) { if (ci === it.answer) cls += " right"; else if (ci === it.pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="drillPick" data-c="' + ci + '"' + (it.pick != null ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" +
+    (it.pick != null ? '<div class="why">' + (it.pick === it.answer ? "정답! " : "정답은 " + (it.answer + 1) + "번. ") + esc(it.why) + '</div><div class="row"><button class="btn primary" data-act="drillNext">' + (d.i + 1 < d.items.length ? "다음 →" : "결과 보기") + "</button></div>" : "") + "</div></section>";
+}
+
 /* ============ 카드함 ============ */
 function viewCards() {
   const f = cardFilter.trim(), list = S.cards.filter(c => !f || (c.topic + " " + c.subject).includes(f)).sort((a, b) => String(a.nextReview || "").localeCompare(String(b.nextReview || "")));
@@ -502,6 +552,7 @@ function viewSettings() {
     '<label class="f">모델<select id="gmodel"><option>' + esc(cfg.model) + "</option></select></label>" +
     '<div class="row"><button class="btn primary" data-act="saveKey">저장</button><button class="btn" data-act="testKey">연결 시험</button><button class="btn" data-act="models">모델 목록 불러오기</button>' + (GEMINI_API_KEYS().length ? '<button class="btn ghost" data-act="clearKey">키 모두 지우기</button>' : "") + '</div><p class="small muted" id="keyMsg" style="margin:0"></p></section>' +
     '<section class="sheet"><h2>📥 카드 가져오기</h2><p class="small muted" style="margin:0">Claude가 볼트 <code>3. 수업/국시 퀘스트 앱/카드 내보내기/</code>에 만든 JSON 파일을 고르세요. 같은 카드는 내용만 바뀌고 공부 기록은 그대로예요.</p><input type="file" id="cardFile" accept=".json,application/json"><textarea id="cardPaste" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder="또는 붙여 넣기로 가져오기: Gemini가 준 {&quot;cards&quot;:[ … ]} 를 여기에 붙여 넣기"></textarea><div class="row"><button class="btn primary" data-act="importCards">가져오기</button></div><p class="small muted" id="impMsg" style="margin:0"></p></section>' +
+    '<section class="sheet"><h2>🔊 읽어 주기</h2><p class="small muted" style="margin:0">설명 채점 결과를 소리로 읽어 줄지 정해요. 틀리거나 빠뜨린 부분만 읽어요.</p><div class="row">' + voiceBtn() + '</div></section>' +
     '<section class="sheet"><h2>⚙️ 하루 할당량</h2><label class="f">하루 카드 수<input type="number" id="quota" min="1" max="60" value="' + S.settings.quotaCards + '"></label><div class="row"><button class="btn" data-act="saveQuota">저장</button><button class="btn ghost" data-act="exportAll">기록 내보내기(JSON)</button></div></section>';
 }
 async function importCards() {
@@ -542,6 +593,11 @@ document.addEventListener("click", async e => {
   if (a === "regrade") { run.grade = null; return grade(); }
   if (a === "finish") return finishCard();
   if (a === "revStart") return reviewStart();
+  if (a === "voice") return toggleVoice();
+  if (a === "drillStart") { if (isMet(today())) drillStart(); return; }
+  if (a === "drillPick") { const it = drill.items[drill.i]; if (it.pick == null) { it.pick = +b.dataset.c; if (it.pick === it.answer) drill.right++; } return render(); }
+  if (a === "drillNext") { drill.i++; if (drill.i >= drill.items.length) { drill.done = true; const x = dayOf(today()); if (!x.drill || drill.right >= (x.drill.score || 0)) setDay(today(), { drill: { score: drill.right, total: drill.items.length } }); } render(); window.scrollTo(0, 0); return; }
+  if (a === "drillExit") { drill = null; return render(); }
   if (a === "revPick") { const it = rev.items[rev.i]; if (it.pick == null) { it.pick = +b.dataset.c; if (it.pick === it.answer) rev.right++; } return render(); }
   if (a === "revNext") { rev.i++; if (rev.i >= rev.items.length) { rev.done = true; setDay(today(), { reviewDone: dayOf(today()).reviewDone + rev.items.length }); } render(); window.scrollTo(0, 0); return; }
   if (a === "revExit") { rev = null; return render(); }
