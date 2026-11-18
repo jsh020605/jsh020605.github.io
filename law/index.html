@@ -79,7 +79,8 @@ const TOPICS = (window.LAW && window.LAW.topics) || [], TB = Object.fromEntries(
 const LAWS = [...new Set(TOPICS.map(t => t.law))];
 
 /* ---- 기록: 이 기기(localStorage) + 로그인돼 있으면 계정(users/{uid}/law/state) ---- */
-let S = Object.assign({ days: {}, topics: {}, wrong: [], settings: { quota: 6 } }, lsGet("law.v1", {}));
+let S = Object.assign({ days: {}, topics: {}, wrong: [], seen: {}, settings: { quota: 6 } }, lsGet("law.v1", {}));
+if (!S.seen) S.seen = {};
 let cfg = lsGet("gqw.cfg", {}), fb = null, fdb = null, user = null, syncMsg = "📱 이 기기에 저장", saveT = 0;
 const dayOf = d => S.days[d] || (S.days[d] = { ans: 0, ok: 0, topics: [] });
 function save() {
@@ -93,6 +94,7 @@ function merge(c) {
   Object.entries(c.days || {}).forEach(([d, x]) => { const m = S.days[d]; if (!m || (x.ans || 0) > (m.ans || 0)) S.days[d] = x; else if (x.quiz && (!m.quiz || (x.quiz.score || 0) > (m.quiz.score || 0))) m.quiz = x.quiz; });
   Object.entries(c.topics || {}).forEach(([id, x]) => { const m = S.topics[id]; if (!m || (x.n || 0) > (m.n || 0)) S.topics[id] = x; });
   S.wrong = [...new Set([...(S.wrong || []), ...(c.wrong || [])])];
+  Object.entries(c.seen || {}).forEach(([k, n]) => { if ((n || 0) > (S.seen[k] || 0)) S.seen[k] = n; });
   if (c.settings) S.settings = Object.assign({}, S.settings, c.settings);
 }
 function renderSync() { const e = $("#sync"); if (e) e.textContent = syncMsg; }
@@ -155,22 +157,46 @@ function nextQ() {
 let lastRun = null;
 
 /* ---- 쪽지시험: 오늘(+그동안) 공부한 주제의 '재료'로 새 문제를 만든다. 연습문제는 다시 내지 않는다 ---- */
-function buildQuiz() {
+// 쪽지시험: 같은 문제는 다시 안 낸다.
+// 재료(f) 하나로 3가지 다른 문제를 만든다: 앞→뒤 4지선다(fw), OX(ox), 뒤→앞 4지선다(rv).
+// 한 번 푼 문제(S.seen)는 빼고, 연습문제와 같은 걸 묻는 재료는 fw·ox를 빼고 rv만 쓴다. 한 시험에 같은 재료는 1문제만.
+const qn = t => String(t || "").replace(/[\s.,?!·()\[\]"'「」~:;/%]+/g, "");
+const qg = t => { const n = qn(t), g = new Set(); for (let i = 0; i < n.length - 1; i++) g.add(n.slice(i, i + 2)); return g; };
+const qs = (a, b) => { if (!a.size || !b.size) return 0; let k = 0; a.forEach(x => { if (b.has(x)) k++; }); return k / Math.min(a.size, b.size); };
+const qCat = st => /(기한|주기|기간|이내|전|후|때|일|년|개월|시기)$/.test(qn(st)) ? "time" : /(사람|주체|기관|자|장|권자|단체|위원회|공단|곳)$/.test(qn(st)) ? "who" : /(근거|법|조항)$/.test(qn(st)) ? "law" : /(금액|비율|원|명|수|%|퍼센트)$/.test(qn(st)) ? "num" : "etc";
+const likePractice = (t, f) => (t.p || []).some(p => qn(p[1][0]) === qn(f[1]) && qs(qg(f[0]), qg(p[0])) >= 0.4);
+function quizPool() {
   const d = today(), todayIds = dayOf(d).topics, studied = TOPICS.filter(t => S.topics[t.id]).map(t => t.id);
-  const facts = id => (TB[id].f || []).map(f => ({ id, f }));
-  const seq = [...shuffle(todayIds.flatMap(facts)), ...shuffle(studied.filter(id => !todayIds.includes(id)).flatMap(facts))];
-  const mk = (o, ox) => {
-    const [stem, ans, ds] = o.f, t = TB[o.id];
-    if (ox) { const truth = Math.random() < 0.5, val = truth ? ans : ds[Math.floor(Math.random() * ds.length)]; return { law: t.law, title: t.title, ox: true, q: "「" + stem + "」 = " + val, choices: [{ c: "O", ok: truth }, { c: "X", ok: !truth }], why: "정답: " + ans }; }
-    return { law: t.law, title: t.title, ox: false, q: "「" + stem + "」으로 옳은 것은?", choices: shuffle([{ c: ans, ok: true }, ...ds.slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + ans };
-  };
-  const items = [], forms = seq.map(() => Math.random() < 0.35);
-  seq.forEach((o, i) => { if (items.length < QUIZ_N) items.push(mk(o, forms[i])); });
-  seq.forEach((o, i) => { if (items.length < QUIZ_N) items.push(mk(o, !forms[i])); }); // 재료가 모자라면 같은 내용을 다른 형식(OX↔4지선다)으로
-  return shuffle(items).slice(0, QUIZ_N);
+  const order = [...shuffle(todayIds.slice()), ...shuffle(studied.filter(id => !todayIds.includes(id)))];
+  const facts = []; order.forEach(id => { if (TB[id]) (TB[id].f || []).forEach((f, fi) => facts.push({ id, fi, f })); });
+  return facts;
 }
-function startQuiz() { const items = buildQuiz(); if (!items.length) return; quiz = { items, i: 0, pick: null, res: [] }; view = "quiz"; render(); window.scrollTo(0, 0); }
-function quizAnswer(j) { if (!quiz || quiz.pick != null) return; const it = quiz.items[quiz.i]; quiz.pick = j; it.pick = j; quiz.res.push(it.choices[j].ok); render(); }
+function mkQuizItem(o, kind) {
+  const [stem, ans, ds] = o.f, t = TB[o.id], key = o.id + ":" + o.fi + ":" + kind;
+  if (kind === "ox") { const truth = Math.random() < 0.5, val = truth ? ans : ds[Math.floor(Math.random() * ds.length)]; return { key, law: t.law, title: t.title, ox: true, q: "「" + stem + "」 = " + val, choices: [{ c: "O", ok: truth }, { c: "X", ok: !truth }], why: "정답: " + stem + " = " + ans }; }
+  if (kind === "rv") {
+    // 오답 보기는 같은 종류(사람·기관끼리, 기한·주기끼리 …)에서 고르고, 정답이 겹칠 수 있는 재료는 뺀다
+    const A = qn(ans), mine = qCat(stem), same = [], rest = [];
+    TOPICS.filter(x => x.law === t.law).forEach(x => (x.f || []).forEach(g => {
+      const G = qn(g[1]); if (g[0] === stem || G === A || G.includes(A) || A.includes(G) || same.includes(g[0]) || rest.includes(g[0])) return;
+      (qCat(g[0]) === mine ? same : rest).push(g[0]);
+    }));
+    if (same.length < 3) return null;                                   // 같은 종류 보기가 모자라면 이 형식은 안 낸다
+    return { key, law: t.law, title: t.title, ox: false, q: "「" + ans + "」에 해당하는 것은?", choices: shuffle([{ c: stem, ok: true }, ...shuffle(same).slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + stem + " = " + ans };
+  }
+  return { key, law: t.law, title: t.title, ox: false, q: "「" + stem + "」으로 옳은 것은?", choices: shuffle([{ c: ans, ok: true }, ...ds.slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + ans };
+}
+function buildQuiz() {
+  const items = [];
+  for (const o of quizPool()) {
+    if (items.length >= QUIZ_N) break;
+    const kinds = (likePractice(TB[o.id], o.f) ? ["rv"] : shuffle(["fw", "ox", "rv"])).filter(k => !S.seen[o.id + ":" + o.fi + ":" + k]);
+    for (const k of kinds) { const it = mkQuizItem(o, k); if (it) { items.push(it); break; } }
+  }
+  return shuffle(items);
+}
+function startQuiz() { const items = buildQuiz(); if (!items.length) { quiz = null; view = "home"; alert("오늘까지 공부한 내용으로 만들 수 있는 새 문제를 다 풀었어요. 내일 새 주제를 공부하면 새 문제가 생겨요."); return render(); } quiz = { items, i: 0, pick: null, res: [] }; view = "quiz"; render(); window.scrollTo(0, 0); }
+function quizAnswer(j) { if (!quiz || quiz.pick != null) return; const it = quiz.items[quiz.i]; quiz.pick = j; it.pick = j; quiz.res.push(it.choices[j].ok); if (it.key) { S.seen[it.key] = (S.seen[it.key] || 0) + 1; save(); } render(); }
 function quizNext() {
   quiz.i++; quiz.pick = null;
   if (quiz.i < quiz.items.length) return render();
@@ -195,7 +221,7 @@ function viewHome() {
   if (lastRun) h += '<div class="notice ok">✅ <b>' + esc(lastRun.title) + "</b> 끝 · " + lastRun.n + "문제 중 " + lastRun.ok + "개 맞음</div>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "할당량 완료! 아래 쪽지시험을 볼 수 있어요." : "문제 " + Math.min(x.ans, q) + "/" + q + " — " + (q - x.ans) + "문제 더 풀면 쪽지시험이 열려요") + " · 오늘 맞힌 문제 " + x.ok + "개</p>" +
     '<button class="btn primary big" data-act="next">' + (S.topics[nt.id] ? "복습하기 → " : "이어서 공부하기 → ") + esc(nt.law) + " · " + esc(nt.title) + "</button></section>";
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 ' + QUIZ_N + '문제</h2>' + (x.quiz ? '<span class="chip">최고 ' + x.quiz.score + "/" + x.quiz.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 <b>새 문제</b>가 나와요(연습문제와 다른 4지선다·OX). 모자라면 그동안 공부한 주제에서 채워요.</p>' +
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 (최대 ' + QUIZ_N + '문제)</h2>' + (x.quiz ? '<span class="chip">최고 ' + x.quiz.score + "/" + x.quiz.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 <b>처음 보는 문제</b>만 나와요. 연습문제·앞서 푼 쪽지시험과 같은 문제는 빼요. 모자라면 그동안 공부한 주제에서 채우고, 그래도 모자라면 그만큼만 내요.</p>' +
     '<button class="btn big' + (met ? " primary" : "") + '" data-act="quiz"' + (met ? "" : " disabled") + ">" + (met ? (x.quiz ? "다시 보기" : "쪽지시험 시작") : "🔒 할당량을 채우면 열려요") + "</button></section>";
   const todayT = x.topics.map(id => TB[id]).filter(Boolean);
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 오늘 한 주제</h2><span class="chip">' + todayT.length + "개</span></div>" + (todayT.length ? '<ul class="list">' + todayT.map(t => '<li><span class="t"><span class="law">' + esc(t.law) + "</span><b>" + esc(t.title) + '</b></span><button class="btn sm" data-act="study" data-id="' + t.id + '">다시</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">아직 없어요.</p>') + "</section>";
@@ -235,7 +261,7 @@ function viewResult() {
   const z = quiz, score = z.res.filter(Boolean).length, wrong = z.items.filter(it => it.pick != null && !it.choices[it.pick].ok);
   return '<section class="sheet"><h2>📝 쪽지시험 결과</h2><div class="score">' + score + " / " + z.items.length + '</div><div class="bar' + (score === z.items.length ? " done" : "") + '"><i style="width:' + Math.round(score / z.items.length * 100) + '%"></i></div>' +
     (wrong.length ? '<h3 class="sub">틀린 것 ' + wrong.length + '개</h3><ul class="list">' + wrong.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="law">' + esc(it.law) + " · " + esc(it.title) + "</span><b>" + esc(it.q) + '</b><span class="small">내 답: ' + esc(it.choices[it.pick].c) + " · " + esc(it.why) + "</span></li>").join("") + "</ul>" : '<div class="notice ok">전부 맞았어요! 👏</div>') +
-    '<div class="row"><button class="btn primary" data-act="quiz">한 번 더 (새로 섞기)</button><button class="btn" data-act="home">처음으로</button></div></section>';
+    '<div class="row"><button class="btn primary" data-act="quiz">한 번 더 (새 문제로)</button><button class="btn" data-act="home">처음으로</button></div></section>';
 }
 
 document.addEventListener("click", e => {
