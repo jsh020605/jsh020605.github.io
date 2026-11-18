@@ -250,12 +250,12 @@ function nextGeminiKey() {
   return null;
 }
 /* 키 1개로 한 번 부르기 */
-async function geminiCall(key, prompt, timeoutMs) {
+async function geminiCall(key, prompt, timeoutMs, temp) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(cfg.model || "gemini-2.5-flash") + ":generateContent", {
       method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.3 } })
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: temp == null ? 0.3 : temp } })
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
@@ -276,7 +276,7 @@ async function geminiCall(key, prompt, timeoutMs) {
 }
 /* 채점·복습이 부르는 함수: onWait(문구)로 「잠시 기다리는 중」을 화면에 보여 줄 수 있다 */
 const TERMS = "\n용어 규칙: 모든 문장·보기·해설은 대한의사협회 의학용어집 제6판·해부학용어 6판의 신용어만 쓴다. 구용어는 쓰지 않고 괄호로 같이 적지도 않는다. 예: 위팔뼈(상완골 X), 넙다리네갈래근(대퇴사두근 X), 굽힘·폄·벌림·모음(굴곡·신전·외전·내전 X), 안쪽·가쪽·몸쪽·먼쪽(내측·외측·근위·원위 X), 노신경·궁둥신경(요골신경·좌골신경 X), 무릎관절·엉덩관절(슬관절·고관절 X). 카드 내용이 구용어여도 신용어로 바꿔 쓴다.\n";
-async function gemini(prompt, timeoutMs = 45000, onWait) {
+async function gemini(prompt, timeoutMs = 45000, onWait, temp) {
   if (window.__fakeGemini) return window.__fakeGemini(prompt);
   if (!GEMINI_API_KEYS().length) throw { code: "nokey" };
   let retries = 0, lastErr = null;
@@ -290,7 +290,7 @@ async function gemini(prompt, timeoutMs = 45000, onWait) {
       retries++; onWait && onWait("사용량이 많아 " + Math.ceil(w / 1000) + "초 기다렸다 다시 해요 (" + retries + "/" + RETRY.maxRetries + ")");
       await sleep(w); continue;
     }
-    try { return await geminiCall(key, prompt, timeoutMs); }
+    try { return await geminiCall(key, prompt, timeoutMs, temp); }
     catch (e) {
       lastErr = e;
       if (e.code === "rate") { keyCool[key] = Date.now() + (e.daily ? 3600000 : Math.max(e.waitMs || 0, RETRY.delayMs)); continue; }   // 다음 키로 바로
@@ -377,7 +377,7 @@ function viewHome() {
   if (!user) h += '<div class="notice">' + (fb ? "로그인하지 않아 이 기기에만 저장돼요. <b>설정</b>에서 로그인하면 핸드폰·맥이 같은 기록을 봐요." : "아직 Firebase가 연결되지 않아 이 기기에만 저장돼요. <b>설정</b>에서 연결해 주세요.") + "</div>";
   if (lastDone) h += '<div class="notice ok">✅ 카드 완료: <b>' + esc(lastDone.topic) + "</b> · 퀴즈 " + esc(lastDone.quiz) + " 맞음" + (lastDone.explain != null ? " · 설명 " + lastDone.explain + "점" : "") + " · 다음 복습 " + md(lastDone.next) + '<br><span class="small">' + ({ saved: "☁️ 계정에 저장됨", saving: "☁️ 저장 중…", local: "📱 이 기기에만 저장됨", failed: "⚠ 계정 저장 실패 — 연결되면 다시 보내요" }[saveState] || "") + "</span></div>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "🔥 오늘 할당량 완료! 연속 " + streak() + "일째" : "카드 " + Math.min(x.cardsDone, q) + "/" + q + " — " + (q - x.cardsDone) + "장 더 하면 완료") + (x.reviewDone ? " · 복습 " + x.reviewDone + "문제" : "") + "</p></section>";
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🧠 오늘 내용 복습 ' + DRILL_N + '문제</h2>' + (x.drill ? '<span class="chip ok">최고 ' + x.drill.score + "/" + x.drill.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 카드 내용으로 Gemini가 <b>새 문제</b>를 만들어요(카드 퀴즈와 다른 문제).</p><button class="btn' + (met ? " omr" : "") + '" data-act="drillStart"' + (met ? "" : " disabled") + ">" + (met ? (x.drill ? "다시 풀기 (새 문제)" : "복습 30문제 시작") : "🔒 오늘 할당량을 채우면 열려요") + "</button></section>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🧠 오늘 내용 복습 (최대 ' + DRILL_MAX + '문제)</h2>' + (x.drill ? '<span class="chip ok">최고 ' + x.drill.score + "/" + x.drill.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 Gemini가 <b>처음 보는 문제</b>를 만들어요. 카드 퀴즈·앞서 푼 복습과 같은 문제는 빼요.</p><button class="btn' + (met ? " omr" : "") + '" data-act="drillStart"' + (met ? "" : " disabled") + ">" + (met ? (x.drill ? "다시 풀기 (새 문제)" : "복습 문제 시작") : "🔒 오늘 할당량을 채우면 열려요") + "</button></section>";
   const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
   if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
   h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">법규 퀘스트</a>에서 따로 해요.</p>';
@@ -508,22 +508,72 @@ function viewReview() {
 }
 
 /* ============ 오늘 내용 복습 30문제 (할당량 채우면) ============ */
-const DRILL_N = 30;
+const DRILL_MAX = 50, DRILL_PER_CARD = 3, DRILL_CHUNK = 4;   // 최대 50문제(그 이하 OK), 카드당 3문제, 4장씩 나눠 만든다
 let drill = null;
+const drillTarget = n => Math.min(DRILL_MAX, Math.max(5, n * DRILL_PER_CARD));
+// 같은 문제 금지: 글자 2개씩 묶어 겹치는 정도로 비교 (띄어쓰기·문장부호 무시)
+const qNorm = t => String(t || "").replace(/[\s.,?!·()\[\]"'“”‘’~\-:;/%]+/g, "").replace(/(것은|옳은|알맞은|해당하는|가장|다음|무엇인가|어느|설명으로)/g, "");
+const qGrams = t => { const n = qNorm(t), g = new Set(); for (let i = 0; i < n.length - 1; i++) g.add(n.slice(i, i + 2)); return g; };
+const qSim = (a, b) => { if (!a.size || !b.size) return 0; let k = 0; a.forEach(x => { if (b.has(x)) k++; }); return k / Math.min(a.size, b.size); };
+const chNorm = arr => asArr(arr).map(x => qNorm(x)).filter(Boolean);
+function isRepeat(item, seen) {
+  // 같은 문제 = 같은 문장, 또는 비슷한 문장인데 정답도 같은 것(말만 바꾼 문제·보기만 섞은 문제).
+  // 모양이 비슷해도 정답이 다르면(예: 다리 한쪽 % → 팔 한쪽 %) 내용이 다른 문제라 낸다.
+  const g = qGrams(item.q), right = qNorm(item.choices[item.answer]), cs = chNorm(item.choices);
+  return seen.some(o => {
+    if (qNorm(o.q) === qNorm(item.q)) return true;
+    const sim = qSim(g, o.g || (o.g = qGrams(o.q)));
+    if (sim >= 0.45 && o.right && o.right === right) return true;
+    const oc = o.cs || (o.cs = chNorm(o.choices));
+    if (sim >= 0.9 && cs.filter(c => oc.includes(c)).length >= 4) return true;
+    return false;
+  });
+}
+function drillSeen() { const v = lsGet("gqw.drillSeen", {}); return v && v.day === today() ? asArr(v.qs) : []; }
+function drillRemember(items) { const qs = drillSeen().concat(items.map(it => ({ q: it.q, choices: it.choices, right: qNorm(it.choices[it.answer]) }))).slice(-300); lsSet("gqw.drillSeen", { day: today(), qs }); }
 async function drillStart() {
   const cards = todayStudy().map(o => o.c); if (!cards.length) return;
-  drill = { items: [], i: 0, right: 0, busy: true, err: "", done: false, busyMsg: "" }; render(); window.scrollTo(0, 0);
-  const data = cards.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints), alreadyAsked: asArr(c.quiz).map(q => q.q) }));
-  const prompt = "학생이 오늘 공부한 카드들이다. 같은 내용을 다른 각도로 묻는 한국 물리치료사 국가시험형 5지선다 " + DRILL_N + "문제를 만든다. 한국어로.\n규칙: alreadyAsked(이미 낸 문제)와 같은 문제·같은 표현은 내지 않는다. 같은 개념이라도 묻는 점(정의·숫자·짝·임상 적용·함정·비교)을 바꾼다. 카드마다 고르게 나눈다. 숫자·용어는 concept에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS + "오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
-  try { const arr = await gemini(prompt, 120000, m => { drill.busyMsg = m; render(); }); drill.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).slice(0, DRILL_N).map(x => ({ topic: String(x.topic || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
-  catch (e) { drill.err = gErr(e) + " 오늘 카드의 원래 문제로 대신 풀어요."; }
-  if (!drill.items.length) drill.items = cards.flatMap(c => asArr(c.quiz).map(q => ({ topic: c.topic, q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null })));
+  const target = drillTarget(cards.length);
+  drill = { items: [], i: 0, right: 0, busy: true, err: "", done: false, busyMsg: "", target }; render(); window.scrollTo(0, 0);
+  // 이미 낸 문제 = 카드 원래 퀴즈 + 복습 세션 + 오늘 앞서 푼 복습 문제
+  const seen = [];
+  cards.forEach(c => asArr(c.quiz).forEach(q => seen.push({ q: q.q, choices: asArr(q.choices), right: qNorm(asArr(q.choices)[q.answer | 0]) })));
+  drillSeen().forEach(o => seen.push({ q: o.q, choices: asArr(o.choices), right: o.right }));
+  const groups = []; for (let i = 0; i < cards.length; i += DRILL_CHUNK) groups.push(cards.slice(i, i + DRILL_CHUNK));
+  const per = Math.max(1, Math.ceil(target / groups.length));
+  let fails = 0, lastErr = null;
+  for (let gi = 0; gi < groups.length && drill && drill.items.length < target; gi++) {
+    const grp = groups[gi], want = Math.min(per, target - drill.items.length);
+    const asked = seen.filter(o => grp.some(c => asArr(c.quiz).some(q => q.q === o.q))).map(o => o.q).concat(drillSeen().map(o => o.q).slice(-40));
+    const data = grp.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints) }));
+    const prompt = "학생이 오늘 공부한 카드들이다. 이 내용으로 한국 물리치료사 국가시험형 5지선다 " + (want + 2) + "문제를 새로 만든다. 한국어로.\n" +
+      "가장 중요한 규칙: alreadyAsked에 있는 문제와 같은 문제를 절대 내지 않는다. 문장만 바꾼 문제, 같은 것을 묻고 정답이 같은 문제, 보기만 섞은 문제도 같은 문제로 본다. 학생이 외워서 풀 수 없게, 같은 개념이라도 다른 점을 묻는다: 정의 ↔ 예시 바꾸기, 숫자·기준, 짝짓기, 임상 사례(환자 상황 제시), 옳지 않은 것 고르기, 두 개념 비교, 원인 ↔ 결과 뒤집기. 정답도 alreadyAsked와 다른 보기가 되게 한다.\n" +
+      "카드마다 고르게 나눈다. 숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS +
+      "alreadyAsked(내면 안 되는 문제):\n- " + asked.slice(0, 80).join("\n- ") + "\n\n오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+    drill.busyMsg = "새 문제 만드는 중… (" + (gi + 1) + " / " + groups.length + " 묶음, 지금 " + drill.items.length + "문제)"; render();
+    try {
+      const arr = await gemini(prompt, 90000, m => { if (drill) { drill.busyMsg = m; render(); } }, 0.9);
+      if (!drill) return;
+      asArr(arr).forEach(x => {
+        if (!x || !x.q || !Array.isArray(x.choices) || x.choices.length < 4 || drill.items.length >= target) return;
+        const it = { topic: String(x.topic || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null };
+        if (isRepeat(it, seen)) return;                                    // 이미 낸 문제·이번에 낸 문제와 같으면 버림
+        seen.push({ q: it.q, choices: it.choices, right: qNorm(it.choices[it.answer]) });
+        drill.items.push(it);
+      });
+    } catch (e) { fails++; lastErr = e; if (e && (e.code === "rate" || e.code === "nokey" || e.code === "key")) break; }
+  }
+  if (!drill) return;
+  if (drill.items.length) drillRemember(drill.items);
+  if (!drill.items.length) drill.err = (lastErr ? gErr(lastErr) : "새 문제를 만들지 못했어요.") + " 같은 문제는 내지 않으니, 잠시 뒤 다시 눌러 주세요.";
+  else if (drill.items.length < target && fails) drill.err = "일부만 만들었어요 (" + drill.items.length + "문제). 같은 문제는 빼고 냈어요.";
   drill.busy = false; render();
 }
 function viewDrill() {
   const d = drill;
-  if (d.busy) return '<section class="sheet"><h2>🧠 오늘 내용 복습 준비 중…</h2>' + (d.busyMsg ? '<p class="small">' + esc(d.busyMsg) + "</p>" : "") + '<p class="small muted">Gemini가 오늘 공부한 내용으로 새 문제 ' + DRILL_N + "개를 만들고 있어요. (30~60초)</p></section>";
-  if (d.done || !d.items.length) { const wr = d.items.filter(it => it.pick != null && it.pick !== it.answer); return '<section class="sheet"><div class="gate"><div class="big">🧠 오늘 복습 끝!</div><div class="sub">' + d.right + " / " + d.items.length + ' 맞음</div></div>' + (wr.length ? '<h3>틀린 것 ' + wr.length + '개</h3><ul class="list">' + wr.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="small muted">' + esc(it.topic) + "</span><b>" + esc(it.q) + '</b><span class="small">정답: ' + esc(it.choices[it.answer]) + " — " + esc(it.why) + "</span></li>").join("") + "</ul>" : "") + '<div class="row"><button class="btn omr" data-act="drillExit">🏠 홈으로</button></div></section>'; }
+  if (d.busy) return '<section class="sheet"><h2>🧠 오늘 내용 복습 준비 중…</h2>' + (d.busyMsg ? '<p class="small">' + esc(d.busyMsg) + "</p>" : "") + '<p class="small muted">Gemini가 오늘 공부한 내용으로 <b>처음 보는 문제</b> ' + (d.target || "") + "개를 만들고 있어요. 이미 푼 문제와 같은 건 빼요. (1~2분)</p></section>";
+  if (!d.items.length) return '<section class="sheet"><h2>🧠 오늘 내용 복습</h2><div class="notice">' + esc(d.err || "새 문제를 만들지 못했어요.") + '</div><div class="row"><button class="btn primary" data-act="drillStart">다시 만들기</button><button class="btn ghost" data-act="drillExit">홈으로</button></div></section>';
+  if (d.done) { const wr = d.items.filter(it => it.pick != null && it.pick !== it.answer); return '<section class="sheet"><div class="gate"><div class="big">🧠 오늘 복습 끝!</div><div class="sub">' + d.right + " / " + d.items.length + ' 맞음</div></div>' + (wr.length ? '<h3>틀린 것 ' + wr.length + '개</h3><ul class="list">' + wr.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="small muted">' + esc(it.topic) + "</span><b>" + esc(it.q) + '</b><span class="small">정답: ' + esc(it.choices[it.answer]) + " — " + esc(it.why) + "</span></li>").join("") + "</ul>" : "") + '<div class="row"><button class="btn omr" data-act="drillExit">🏠 홈으로</button></div></section>'; }
   const it = d.items[d.i];
   return '<section class="sheet"><div class="row" style="justify-content:space-between"><span class="chip">🧠 ' + (d.i + 1) + " / " + d.items.length + '</span><button class="btn ghost" data-act="drillExit">나가기</button></div>' + (d.err ? '<div class="notice">' + esc(d.err) + "</div>" : "") + '<span class="small muted">' + esc(it.topic) + '</span><div class="q"><p>' + esc(it.q) + '</p><div class="opts">' +
     it.choices.map((ch, ci) => { let cls = "opt"; if (it.pick != null) { if (ci === it.answer) cls += " right"; else if (ci === it.pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="drillPick" data-c="' + ci + '"' + (it.pick != null ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" +
