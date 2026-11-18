@@ -275,6 +275,7 @@ async function geminiCall(key, prompt, timeoutMs) {
   finally { clearTimeout(t); }
 }
 /* 채점·복습이 부르는 함수: onWait(문구)로 「잠시 기다리는 중」을 화면에 보여 줄 수 있다 */
+const TERMS = "\n용어 규칙: 모든 문장·보기·해설은 대한의사협회 의학용어집 제6판·해부학용어 6판의 신용어만 쓴다. 구용어는 쓰지 않고 괄호로 같이 적지도 않는다. 예: 위팔뼈(상완골 X), 넙다리네갈래근(대퇴사두근 X), 굽힘·폄·벌림·모음(굴곡·신전·외전·내전 X), 안쪽·가쪽·몸쪽·먼쪽(내측·외측·근위·원위 X), 노신경·궁둥신경(요골신경·좌골신경 X), 무릎관절·엉덩관절(슬관절·고관절 X). 카드 내용이 구용어여도 신용어로 바꿔 쓴다.\n";
 async function gemini(prompt, timeoutMs = 45000, onWait) {
   if (window.__fakeGemini) return window.__fakeGemini(prompt);
   if (!GEMINI_API_KEYS().length) throw { code: "nokey" };
@@ -448,7 +449,7 @@ async function grade() {
   if (!run.explain) { run.err = "먼저 말하거나 써 주세요."; return render(); }
   unlockSpeech(); stopVoice(); run.busy = true; run.busyMsg = ""; run.err = ""; render();
   const c = run.card;
-  const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 우리말 용어로 말해도 인정한다. 한국어로.\n\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
+  const prompt = "너는 한국 물리치료사 국가시험 선생님이다. 학생이 아래 개념을 자기 말로 소리 내어 설명했다(음성 받아쓰기라 맞춤법·띄어쓰기·비슷한 소리 오타는 보지 않는다). 핵심 포인트와 비교해 채점하고 바로 해설한다. 내용이 맞으면 표현이 달라도, 구용어로 말해도 인정한다. 단 explain·fix·better·summary에는 신용어만 쓴다. 한국어로." + TERMS + "\n주제: " + c.topic + "\n개념 해설: " + c.concept + "\n핵심 포인트:\n- " + (c.keyPoints || []).join("\n- ") + "\n질문: " + (c.explainPrompt || "") + "\n\n학생 설명:\n\"\"\"" + run.explain.slice(0, 4000) + "\"\"\"\n\n" +
     "규칙: good = 맞게 말한 핵심마다 {point, why(왜 맞는지 한 줄)}. missing = 안 말한 핵심마다 {point, explain(1~2문장 설명, 국시에 어떻게 나오는지)}. wrong = 틀리게 말한 것마다 {said, fix(바른 내용과 이유)}. summary = 틀리거나 빠뜨린 것만 짚는 1문장(존댓말, 맞은 내용은 말하지 않는다. 다 맞았으면 빈칸). better = 면접장에서 그대로 말할 2~3문장 모범 설명.\n" +
     'JSON만: {"score":0~100 정수,"summary":"","good":[{"point":"","why":""}],"missing":[{"point":"","explain":""}],"wrong":[{"said":"","fix":""}],"better":""}';
   try { run.grade = await gemini(prompt, 45000, m => { run.busyMsg = m; render(); }); speak(gradeSpeech(run.grade)); try { recordCard(); } catch (x) {} }
@@ -491,7 +492,7 @@ async function reviewStart() {
   const pool = reviewPool().slice(0, 8); if (!pool.length) return;
   rev = { items: [], i: 0, right: 0, busy: true, err: "", done: false }; render(); window.scrollTo(0, 0);
   const data = pool.map(({ c, r }) => ({ topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), wrongQuestions: asArr(r.wrongQs).map(w => ({ q: w.q, studentPicked: w.mine, correct: w.right, why: w.why })), missedInExplanation: asArr(r.missed), wronglySaid: asArr(r.wrongSaid) }));
-  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장.\n틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장." + TERMS + "틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
   try { const arr = await gemini(prompt, 60000, m => { rev.busyMsg = m; render(); }); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
   if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
@@ -513,7 +514,7 @@ async function drillStart() {
   const cards = todayStudy().map(o => o.c); if (!cards.length) return;
   drill = { items: [], i: 0, right: 0, busy: true, err: "", done: false, busyMsg: "" }; render(); window.scrollTo(0, 0);
   const data = cards.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints), alreadyAsked: asArr(c.quiz).map(q => q.q) }));
-  const prompt = "학생이 오늘 공부한 카드들이다. 같은 내용을 다른 각도로 묻는 한국 물리치료사 국가시험형 5지선다 " + DRILL_N + "문제를 만든다. 한국어로.\n규칙: alreadyAsked(이미 낸 문제)와 같은 문제·같은 표현은 내지 않는다. 같은 개념이라도 묻는 점(정의·숫자·짝·임상 적용·함정·비교)을 바꾼다. 카드마다 고르게 나눈다. 숫자·용어는 concept에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장.\n오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  const prompt = "학생이 오늘 공부한 카드들이다. 같은 내용을 다른 각도로 묻는 한국 물리치료사 국가시험형 5지선다 " + DRILL_N + "문제를 만든다. 한국어로.\n규칙: alreadyAsked(이미 낸 문제)와 같은 문제·같은 표현은 내지 않는다. 같은 개념이라도 묻는 점(정의·숫자·짝·임상 적용·함정·비교)을 바꾼다. 카드마다 고르게 나눈다. 숫자·용어는 concept에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS + "오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
   try { const arr = await gemini(prompt, 120000, m => { drill.busyMsg = m; render(); }); drill.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).slice(0, DRILL_N).map(x => ({ topic: String(x.topic || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { drill.err = gErr(e) + " 오늘 카드의 원래 문제로 대신 풀어요."; }
   if (!drill.items.length) drill.items = cards.flatMap(c => asArr(c.quiz).map(q => ({ topic: c.topic, q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null })));
