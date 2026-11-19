@@ -219,7 +219,7 @@ function grpOf(c) {
   const s = String(c.subject || "") + " " + String(c.topic || "");
   if (/공중보건|보건학|역학|보건교육/.test(s)) return "공중보건학";
   if (/피부|화상|욕창|상처/.test(s)) return "피부물리치료";
-  if (/해부|생리/.test(String(c.subject || ""))) return "해부학";
+  if (/해부|생리|신경계/.test(String(c.subject || ""))) return "해부학";   // 신경계 카드는 해부학 묶음에 (사용자 2026-11-19)
   if (/운동학|뉴만|근골격|Neumann/i.test(String(c.subject || ""))) return "운동학(뉴만)";
   if (/전기|광선|열치료|물리적 인자/.test(String(c.subject || ""))) return "전기치료";
   if (/심폐|호흡|심장/.test(String(c.subject || ""))) return "심폐";
