@@ -84,7 +84,7 @@ h3.sub{font-size:13.5px;margin:10px 0 4px;color:var(--blue,#2f4b8a);border-left:
 </head>
 <body>
 <div class="wrap">
-  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../cal/#jobs">💼 채용 공고</a><span aria-current="page">📚 국시 퀘스트</span><a href="../law/">⚖️ 법규 퀘스트</a><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
+  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../cal/#jobs">💼 채용 공고</a><span aria-current="page">📚 국시 퀘스트</span><a href="../law/">📝 기말고사</a><a href="https://claude.ai/artifact/DDSmnRbtg8X6MHBCGs1o1W">🔤 토익 데일리</a></nav>
   <header class="top">
     <div class="brand"><b>국시 퀘스트</b><small id="dday"></small></div>
     <div class="row"><span class="fire" id="streak">0</span><span class="small muted">일 연속 🔥</span></div>
@@ -380,7 +380,7 @@ function viewHome() {
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🧠 오늘 내용 복습 (최대 ' + DRILL_MAX + '문제)</h2>' + (x.drill ? '<span class="chip ok">최고 ' + x.drill.score + "/" + x.drill.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 Gemini가 <b>처음 보는 문제</b>를 만들어요. 카드 퀴즈·앞서 푼 복습과 같은 문제는 빼요.</p><button class="btn' + (met ? " omr" : "") + '" data-act="drillStart"' + (met ? "" : " disabled") + ">" + (met ? (x.drill ? "다시 풀기 (새 문제)" : "복습 문제 시작") : "🔒 오늘 할당량을 채우면 열려요") + "</button></section>";
   const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
   if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
-  h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">법규 퀘스트</a>에서 따로 해요.</p>';
+  h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">기말고사 퀘스트</a>(법규)에서 따로 해요.</p>';
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
     (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + GROUPS.filter(k => before.some(c => grpOf(c) === k)).map(k => { const l = before.filter(c => grpOf(c) === k); return '<h3 class="sub">' + k + ' <span class="small muted">' + l.length + "장</span></h3>" + '<ul class="list">' + l.slice(0, 6).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + (l.length > 6 ? '<li class="small muted">… ' + (l.length - 6) + "장 더</li>" : "") + "</ul>"; }).join("") : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
   const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };

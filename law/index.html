@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#7a3e9d">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="법규">
-<title>법규 퀘스트</title>
+<meta name="apple-mobile-web-app-title" content="기말고사">
+<title>기말고사 퀘스트</title>
 <link rel="apple-touch-icon" href="../icon-180.png">
 <link rel="icon" type="image/png" href="../icon-180.png">
 <style>
@@ -60,10 +60,11 @@ h3.sub{font-size:14px;color:var(--acc);border-left:3px solid currentColor;paddin
 </head>
 <body>
 <div class="page">
-  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../gq/">📚 국시 퀘스트</a><span aria-current="page">⚖️ 법규 퀘스트</span></nav>
-  <header class="top"><div class="row"><h1>⚖️ 법규 퀘스트</h1><span id="chips" class="row"></span></div><span class="small muted" id="sync"></span></header>
+  <nav class="appnav" aria-label="내 사이트 이동"><a href="../">🏠 JO</a><a href="../cal/">📅 JO Calendar</a><a href="../gq/">📚 국시 퀘스트</a><span aria-current="page">📝 기말고사</span></nav>
+  <header class="top"><div><div class="small muted">3학년 2학기</div><h1>📝 기말고사 퀘스트</h1></div><span class="small muted" id="sync"></span></header>
+  <div id="chips" class="row"></div>
   <main id="view" class="page" style="gap:12px"></main>
-  <p class="small muted" style="text-align:center">문제는 Claude가 수업 노트(의료법·의료기사법·장애인복지법·노인복지법·국민건강보험법)로 미리 만들어 넣었어요. 풀 때 AI를 쓰지 않아요.</p>
+  <p class="small muted" style="text-align:center">문제는 Claude가 내 수업 정리본으로 미리 만들어 넣었어요. 풀 때 AI를 쓰지 않아요.</p>
 </div>
 <script src="bank.js"></script>
 <script>
@@ -75,13 +76,27 @@ const diff = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-const LAW_EXAM = "2026-11-30", QUIZ_N = 20;
-const TOPICS = (window.LAW && window.LAW.topics) || [], TB = Object.fromEntries(TOPICS.map(t => [t.id, t]));
-const LAWS = [...new Set(TOPICS.map(t => t.law))];
-const LAW_MENU = ["의료법", "의료기사법", "장애인복지법", "노인복지법", "국민건강보험법"];   // 고를 수 있는 법 (문제가 없으면 "준비 중")
-const curLaw = () => (S.settings && S.settings.law) || "전체";
-const inLaw = t => curLaw() === "전체" || t.law === curLaw();
+const QUIZ_N = 20;
+/* 3학년 2학기 기말고사 과목 (사용자가 말한 순서). 시험일이 지나면 D-day 칩만 사라진다.
+   스포츠 손상치료·치료적 마사지 12-17은 "~같아"(확정되면 고치기). */
+const SUBJECTS = [
+  { k: "임상의사결정", ic: "🩺", exam: "2026-12-08" },
+  { k: "스포츠 손상치료", ic: "🏃", exam: "2026-12-17" },
+  { k: "치료적 마사지", ic: "💆", exam: "2026-12-17" },
+  { k: "법규", ic: "⚖️", exam: "2026-11-30" },
+  { k: "ADL", ic: "🏠", exam: "2026-12-08" }
+];
+const SB = Object.fromEntries(SUBJECTS.map(s => [s.k, s]));
+// bank.js 주제: subj(과목)가 없으면 법규. law = 과목 안의 소단원(법규는 법 이름, 다른 과목은 주차·단원)
+const TOPICS = ((window.LAW && window.LAW.topics) || []).map(t => Object.assign(t, { subj: t.subj || "법규" })), TB = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+const LAW_MENU = ["의료법", "의료기사법", "장애인복지법", "노인복지법", "국민건강보험법"];   // 법규 안에서 고를 수 있는 법 (문제가 없으면 "준비 중")
+const curSubj = () => (S.settings && SB[S.settings.subj] && S.settings.subj) || "전체";
+const UNIT_MENU = { "법규": LAW_MENU, "ADL": ["치매", "척수손상"], "스포츠 손상치료": ["11장 무릎넙다리관절", "12장 골반과 넙다리", "13장 등뼈와 허리뼈", "14장 목뼈"], "치료적 마사지": ["7장 손과 팔", "8장 등과 배", "9장 엉덩부와 넙다리부"] };   // 과목 안에서 고를 수 있는 단원 (법규 = 법, 나머지 = 단원)
+const curLaw = () => { const sj = curSubj(); if (!UNIT_MENU[sj] || !S.settings) return "전체"; const u = sj === "법규" ? S.settings.law : (S.settings.units || {})[sj]; return u && UNIT_MENU[sj].includes(u) ? u : "전체"; };
+const inLaw = t => (curSubj() === "전체" || t.subj === curSubj()) && (curLaw() === "전체" || t.law === curLaw());
 const POOL = () => TOPICS.filter(inLaw);
+const groupsOf = list => [...new Set(list.map(t => t.subj + "\u0000" + t.law))].map(g => g.split("\u0000"));
+const tag = t => [curSubj() === "전체" ? t.subj : "", t.law && t.law !== t.subj ? t.law : ""].filter(Boolean).join(" · ");
 
 /* ---- 기록: 이 기기(localStorage) + 로그인돼 있으면 계정(users/{uid}/law/state) ---- */
 let S = Object.assign({ days: {}, topics: {}, wrong: [], seen: {}, settings: { quota: 6 } }, lsGet("law.v1", {}));
@@ -139,7 +154,7 @@ function startTopic(id, onlyWrong) {
 function startWrong() {
   const qs = (S.wrong || []).map(k => { const m = k.match(/^(.+)p(\d+)$/), t = m && TB[m[1]], p = t && t.p[+m[2]]; return p && inLaw(t) ? { key: k, tid: t.id, q: p[0], choices: shuffle(p[1].map((c, j) => ({ c, ok: j === p[2] }))), why: p[3] } : null; }).filter(Boolean);
   if (!qs.length) return;
-  run = { t: { id: "_wrong", law: "복습", title: "틀린 문제 다시 풀기", pts: [] }, qs: shuffle(qs).slice(0, 10), i: 0, card: false, pick: null, res: [], wrongRun: true };
+  run = { t: { id: "_wrong", subj: "복습", law: "복습", title: "틀린 문제 다시 풀기", pts: [] }, qs: shuffle(qs).slice(0, 10), i: 0, card: false, pick: null, res: [], wrongRun: true };
   view = "run"; render(); window.scrollTo(0, 0);
 }
 function answer(j) {
@@ -179,18 +194,19 @@ function quizPool() {
 }
 function mkQuizItem(o, kind) {
   const [stem, ans, ds] = o.f, t = TB[o.id], key = o.id + ":" + o.fi + ":" + kind;
-  if (kind === "ox") { const truth = Math.random() < 0.5, val = truth ? ans : ds[Math.floor(Math.random() * ds.length)]; return { key, law: t.law, title: t.title, ox: true, q: "「" + stem + "」 = " + val, choices: [{ c: "O", ok: truth }, { c: "X", ok: !truth }], why: "정답: " + stem + " = " + ans }; }
+  if (kind === "ox") { const truth = Math.random() < 0.5, val = truth ? ans : ds[Math.floor(Math.random() * ds.length)]; return { key, law: tag(t), title: t.title, ox: true, q: "「" + stem + "」 = " + val, choices: [{ c: "O", ok: truth }, { c: "X", ok: !truth }], why: "정답: " + stem + " = " + ans }; }
   if (kind === "rv") {
     // 오답 보기는 같은 종류(사람·기관끼리, 기한·주기끼리 …)에서 고르고, 정답이 겹칠 수 있는 재료는 뺀다
+    if (/없는|아닌|않는/.test(stem)) return null;                       // '없는 것'을 묻는 재료는 거꾸로 물으면 헷갈린다
     const A = qn(ans), mine = qCat(stem), same = [], rest = [];
-    TOPICS.filter(x => x.law === t.law).forEach(x => (x.f || []).forEach(g => {
-      const G = qn(g[1]); if (g[0] === stem || G === A || G.includes(A) || A.includes(G) || same.includes(g[0]) || rest.includes(g[0])) return;
+    TOPICS.filter(x => x.subj === t.subj && x.law === t.law).forEach(x => (x.f || []).forEach(g => {
+      const G = qn(g[1]); if (/없는|아닌|않는/.test(g[0]) || g[0] === stem || G === A || G.includes(A) || A.includes(G) || same.includes(g[0]) || rest.includes(g[0])) return;
       (qCat(g[0]) === mine ? same : rest).push(g[0]);
     }));
     if (same.length < 3) return null;                                   // 같은 종류 보기가 모자라면 이 형식은 안 낸다
-    return { key, law: t.law, title: t.title, ox: false, q: "「" + ans + "」에 해당하는 것은?", choices: shuffle([{ c: stem, ok: true }, ...shuffle(same).slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + stem + " = " + ans };
+    return { key, law: tag(t), title: t.title, ox: false, q: "「" + ans + "」에 해당하는 것은?", choices: shuffle([{ c: stem, ok: true }, ...shuffle(same).slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + stem + " = " + ans };
   }
-  return { key, law: t.law, title: t.title, ox: false, q: "「" + stem + "」으로 옳은 것은?", choices: shuffle([{ c: ans, ok: true }, ...ds.slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + ans };
+  return { key, law: tag(t), title: t.title, ox: false, q: "「" + stem + "」으로 옳은 것은?", choices: shuffle([{ c: ans, ok: true }, ...ds.slice(0, 3).map(c => ({ c, ok: false }))]), why: "정답: " + ans };
 }
 function buildQuiz() {
   const items = [];
@@ -213,8 +229,8 @@ function quizNext() {
 
 /* ---- 그리기 ---- */
 function render() {
-  const t0 = today(), n = diff(t0, LAW_EXAM);
-  $("#chips").innerHTML = n >= 0 ? '<span class="chip' + (n <= 7 ? " red" : "") + '">법규 기말 ' + (n ? "D-" + n : "D-DAY") + "</span>" : "";
+  const t0 = today(), days = [...new Set(SUBJECTS.map(s => s.exam))].sort().filter(d => diff(t0, d) >= 0);
+  $("#chips").innerHTML = days.map(d => { const n = diff(t0, d), md = +d.slice(5, 7) + "/" + +d.slice(8); return '<span class="chip' + (n <= 7 ? " red" : "") + '">' + (n ? "D-" + n : "D-DAY") + " " + SUBJECTS.filter(s => s.exam === d).map(s => s.k).join("·") + " (" + md + ")</span>"; }).join("");
   renderSync();
   const v = $("#view");
   if (!TOPICS.length) { v.innerHTML = '<div class="notice">문제 파일(bank.js)을 못 불러왔어요. law 폴더에 bank.js가 같이 올라갔는지 확인해 주세요.</div>'; return; }
@@ -222,25 +238,27 @@ function render() {
 }
 function viewHome() {
   const t0 = today(), x = dayOf(t0), q = S.settings.quota, pct = Math.min(100, Math.round(Math.min(x.ans, q) / q * 100)), met = x.ans >= q, nt = nextTopic();
-  const pool = POOL(), done = pool.filter(t => S.topics[t.id]).length, L = curLaw();
+  const pool = POOL(), done = pool.filter(t => S.topics[t.id]).length, SJ = curSubj(), L = curLaw(), here = SJ === "전체" ? "전체 과목" : UNIT_MENU[SJ] && L !== "전체" ? (SJ === "법규" ? L : SJ + " · " + L) : SJ;
   let h = "";
-  h += '<section class="sheet"><h2>⚖️ 어떤 법을 공부할까요?</h2><div class="lawpick">' + ["전체"].concat(LAW_MENU).map(k => { const n = k === "전체" ? TOPICS.length : TOPICS.filter(t => t.law === k).length; return '<button class="btn sm' + (L === k ? " primary" : "") + '" data-act="law" data-id="' + esc(k) + '">' + esc(k) + (n ? "" : " · 준비 중") + "</button>"; }).join("") + '</div><p class="small muted" style="margin:0">' + (L === "전체" ? "모든 법을 순서대로 공부해요." : "공부하기·쪽지시험·틀린 문제가 <b>" + esc(L) + "</b>만 나와요.") + "</p></section>";
-  if (!pool.length) return h + '<div class="notice">📭 <b>' + esc(L) + "</b> 문제는 아직 준비 중이에요. Claude가 수업 노트를 받아 문제를 만들면 여기에 나와요. 지금은 다른 법을 골라 주세요.</div>";
+  h += '<section class="sheet"><h2>📚 어떤 과목을 공부할까요?</h2><div class="lawpick">' + ["전체"].concat(SUBJECTS.map(s => s.k)).map(k => { const s = SB[k], n = k === "전체" ? TOPICS.length : TOPICS.filter(t => t.subj === k).length; return '<button class="btn sm' + (SJ === k ? " primary" : "") + '" data-act="subj" data-id="' + esc(k) + '">' + (s ? s.ic + " " : "") + esc(k) + (n ? "" : " · 준비 중") + "</button>"; }).join("") + "</div>";
+  if (UNIT_MENU[SJ]) h += '<h3 class="sub">' + (SJ === "법규" ? "⚖️ 어떤 법?" : "📖 어떤 단원?") + '</h3><div class="lawpick">' + ["전체"].concat(UNIT_MENU[SJ]).map(k => { const n = TOPICS.filter(t => t.subj === SJ && (k === "전체" || t.law === k)).length; return '<button class="btn sm' + (L === k ? " primary" : "") + '" data-act="law" data-id="' + esc(k) + '">' + esc(k) + (n ? "" : " · 준비 중") + "</button>"; }).join("") + "</div>";
+  h += '<p class="small muted" style="margin:0">' + (SJ === "전체" ? "문제가 있는 과목을 모두 순서대로 공부해요." : "공부하기·쪽지시험·틀린 문제가 <b>" + esc(here) + "</b>만 나와요.") + (SB[SJ] ? " · 시험 " + +SB[SJ].exam.slice(5, 7) + "월 " + +SB[SJ].exam.slice(8) + "일" : "") + "</p></section>";
+  if (!pool.length) return h + '<div class="notice">📭 <b>' + esc(here) + "</b> 문제는 아직 준비 중이에요. 정리한 내용을 Claude에게 보내 주면 문제를 만들어 여기에 넣어요. 지금은 다른 과목을 골라 주세요.</div>";
   if (lastRun) h += '<div class="notice ok">✅ <b>' + esc(lastRun.title) + "</b> 끝 · " + lastRun.n + "문제 중 " + lastRun.ok + "개 맞음</div>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between;align-items:flex-end"><h2>🎯 오늘 할당량</h2><span class="pct' + (met ? " ok" : "") + '">' + pct + '%</span></div><div class="bar' + (met ? " done" : "") + '"><i style="width:' + pct + '%"></i></div><p class="small muted" style="margin:0">' + (met ? "할당량 완료! 아래 쪽지시험을 볼 수 있어요." : "문제 " + Math.min(x.ans, q) + "/" + q + " — " + (q - x.ans) + "문제 더 풀면 쪽지시험이 열려요") + " · 오늘 맞힌 문제 " + x.ok + "개</p>" +
-    '<button class="btn primary big" data-act="next">' + (S.topics[nt.id] ? "복습하기 → " : "이어서 공부하기 → ") + (L === "전체" ? esc(nt.law) + " · " : "") + esc(nt.title) + "</button></section>";
+    '<button class="btn primary big" data-act="next">' + (S.topics[nt.id] ? "복습하기 → " : "이어서 공부하기 → ") + (tag(nt) && (SJ === "전체" || L === "전체") ? esc(tag(nt)) + " · " : "") + esc(nt.title) + "</button></section>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 (최대 ' + QUIZ_N + '문제)</h2>' + (x.quiz ? '<span class="chip">최고 ' + x.quiz.score + "/" + x.quiz.total + "</span>" : "") + '</div><p class="small muted" style="margin:0">오늘 공부한 내용으로 <b>처음 보는 문제</b>만 나와요. 연습문제·앞서 푼 쪽지시험과 같은 문제는 빼요. 모자라면 그동안 공부한 주제에서 채우고, 그래도 모자라면 그만큼만 내요.</p>' +
     '<button class="btn big' + (met ? " primary" : "") + '" data-act="quiz"' + (met ? "" : " disabled") + ">" + (met ? (x.quiz ? "다시 보기" : "쪽지시험 시작") : "🔒 할당량을 채우면 열려요") + "</button></section>";
   const todayT = x.topics.map(id => TB[id]).filter(Boolean);
-  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 오늘 한 주제</h2><span class="chip">' + todayT.length + "개</span></div>" + (todayT.length ? '<ul class="list">' + todayT.map(t => '<li><span class="t"><span class="law">' + esc(t.law) + "</span><b>" + esc(t.title) + '</b></span><button class="btn sm" data-act="study" data-id="' + t.id + '">다시</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">아직 없어요.</p>') + "</section>";
+  h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 오늘 한 주제</h2><span class="chip">' + todayT.length + "개</span></div>" + (todayT.length ? '<ul class="list">' + todayT.map(t => '<li><span class="t"><span class="law">' + esc(t.subj + (t.law !== t.subj ? " · " + t.law : "")) + "</span><b>" + esc(t.title) + '</b></span><button class="btn sm" data-act="study" data-id="' + t.id + '">다시</button></li>').join("") + "</ul>" : '<p class="small muted" style="margin:0">아직 없어요.</p>') + "</section>";
   const wn = (S.wrong || []).filter(k => { const m = k.match(/^(.+)p\d+$/); return m && TB[m[1]] && inLaw(TB[m[1]]); }).length;
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>🔁 틀린 문제</h2><span class="chip">' + wn + "개</span></div>" + (wn ? '<button class="btn" data-act="wrong">틀린 문제 다시 풀기 (최대 10개)</button><p class="small muted" style="margin:0">맞히면 목록에서 빠져요.</p>' : '<p class="small muted" style="margin:0">없어요.</p>') + "</section>";
-  h += '<div class="row"><button class="btn" data-act="topics">📚 ' + (L === "전체" ? "주제 전체" : esc(L) + " 주제") + ' 보기 (' + done + "/" + pool.length + ')</button><button class="btn ghost" data-act="settings">⚙️ 하루 문제 수</button></div>';
+  h += '<div class="row"><button class="btn" data-act="topics">📚 ' + (SJ === "전체" ? "주제 전체" : esc(here) + " 주제") + ' 보기 (' + done + "/" + pool.length + ')</button><button class="btn ghost" data-act="settings">⚙️ 하루 문제 수</button></div>';
   return h;
 }
 function viewTopics() {
   return '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📚 주제 전체</h2><button class="btn sm ghost" data-act="home">닫기</button></div>' +
-    LAWS.filter(L => curLaw() === "전체" || L === curLaw()).map(L => '<h3 class="sub">' + esc(L) + "</h3><ul class=\"list\">" + TOPICS.filter(t => t.law === L).map(t => { const s = S.topics[t.id]; return '<li><span class="t"><b>' + esc(t.title) + '</b><span class="small muted">' + (s ? "공부 " + s.n + "번 · 맞힘 " + s.ok + "/" + s.ans : "아직 안 함") + '</span></span><button class="btn sm" data-act="study" data-id="' + t.id + '">' + (s ? "다시" : "시작") + "</button></li>"; }).join("") + "</ul>").join("") + "</section>";
+    groupsOf(POOL()).map(([sj, L]) => '<h3 class="sub">' + esc((SB[sj] ? SB[sj].ic + " " : "") + sj + (L !== sj ? " · " + L : "")) + "</h3><ul class=\"list\">" + POOL().filter(t => t.subj === sj && t.law === L).map(t => { const s = S.topics[t.id]; return '<li><span class="t"><b>' + esc(t.title) + '</b><span class="small muted">' + (s ? "공부 " + s.n + "번 · 맞힘 " + s.ok + "/" + s.ans : "아직 안 함") + '</span></span><button class="btn sm" data-act="study" data-id="' + t.id + '">' + (s ? "다시" : "시작") + "</button></li>"; }).join("") + "</ul>").join("") + "</section>";
 }
 function viewSettings() {
   return '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>⚙️ 하루 문제 수</h2><button class="btn sm ghost" data-act="home">닫기</button></div><p class="small muted" style="margin:0">주제 하나에 연습문제 3개예요. 5개 이상으로 정해요.</p><div class="row">' +
@@ -249,7 +267,7 @@ function viewSettings() {
 function steps(res, i, total) { let s = ""; for (let k = 0; k < total; k++) s += "<i class=\"" + (k < res.length ? (res[k] ? "ok" : "bad") : k === i ? "on" : "") + "\"></i>"; return '<div class="steps">' + s + "</div>"; }
 function viewRun() {
   const r = run, t = r.t;
-  let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><div><span class="law">' + esc(t.law) + "</span><h2>" + esc(t.title) + '</h2></div><button class="btn sm ghost" data-act="exit">나가기</button></div>';
+  let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><div><span class="law">' + esc(t.subj + (t.law !== t.subj ? " · " + t.law : "")) + "</span><h2>" + esc(t.title) + '</h2></div><button class="btn sm ghost" data-act="exit">나가기</button></div>';
   if (r.card) return h + '<ul class="pts">' + t.pts.map(p => "<li>" + esc(p) + "</li>").join("") + '</ul><button class="btn primary big" data-act="toQ">문제 풀기 (' + r.qs.length + "문제) →</button></section>";
   const q = r.qs[r.i];
   h += steps(r.res, r.i, r.qs.length) + '<div class="q">' + (r.i + 1) + ". " + esc(q.q) + '</div><div class="choices">' +
@@ -260,7 +278,7 @@ function viewRun() {
 function viewQuiz() {
   const z = quiz, it = z.items[z.i];
   let h = '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📝 쪽지시험 ' + (z.i + 1) + "/" + z.items.length + '</h2><button class="btn sm ghost" data-act="exit">그만하기</button></div>' + steps(z.res, z.i, z.items.length) +
-    '<span class="law">' + esc(it.law) + " · " + esc(it.title) + "</span>" + (it.ox ? '<div class="small muted">맞으면 O, 틀리면 X</div>' : "") + '<div class="q">' + esc(it.q) + "</div>" +
+    '<span class="law">' + (it.law ? esc(it.law) + " · " : "") + esc(it.title) + "</span>" + (it.ox ? '<div class="small muted">맞으면 O, 틀리면 X</div>' : "") + '<div class="q">' + esc(it.q) + "</div>" +
     '<div class="' + (it.ox ? "oxrow" : "choices") + '">' + it.choices.map((c, j) => '<button class="choice' + (it.ox ? " ox" : "") + (z.pick != null ? (c.ok ? " right" : j === z.pick ? " wrong" : "") : "") + '" data-act="qans" data-id="' + j + '"' + (z.pick != null ? " disabled" : "") + ">" + (it.ox ? "" : (j + 1) + ". ") + esc(c.c) + "</button>").join("") + "</div>";
   if (z.pick != null) h += '<div class="why">' + (it.choices[z.pick].ok ? "⭕ 맞았어요. " : "❌ 틀렸어요. ") + esc(it.why) + '</div><button class="btn primary big" data-act="qnext">' + (z.i + 1 < z.items.length ? "다음 →" : "결과 보기") + "</button>";
   return h + "</section>";
@@ -268,7 +286,7 @@ function viewQuiz() {
 function viewResult() {
   const z = quiz, score = z.res.filter(Boolean).length, wrong = z.items.filter(it => it.pick != null && !it.choices[it.pick].ok);
   return '<section class="sheet"><h2>📝 쪽지시험 결과</h2><div class="score">' + score + " / " + z.items.length + '</div><div class="bar' + (score === z.items.length ? " done" : "") + '"><i style="width:' + Math.round(score / z.items.length * 100) + '%"></i></div>' +
-    (wrong.length ? '<h3 class="sub">틀린 것 ' + wrong.length + '개</h3><ul class="list">' + wrong.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="law">' + esc(it.law) + " · " + esc(it.title) + "</span><b>" + esc(it.q) + '</b><span class="small">내 답: ' + esc(it.choices[it.pick].c) + " · " + esc(it.why) + "</span></li>").join("") + "</ul>" : '<div class="notice ok">전부 맞았어요! 👏</div>') +
+    (wrong.length ? '<h3 class="sub">틀린 것 ' + wrong.length + '개</h3><ul class="list">' + wrong.map(it => '<li style="flex-direction:column;align-items:stretch"><span class="law">' + (it.law ? esc(it.law) + " · " : "") + esc(it.title) + "</span><b>" + esc(it.q) + '</b><span class="small">내 답: ' + esc(it.choices[it.pick].c) + " · " + esc(it.why) + "</span></li>").join("") + "</ul>" : '<div class="notice ok">전부 맞았어요! 👏</div>') +
     '<div class="row"><button class="btn primary" data-act="quiz">한 번 더 (새 문제로)</button><button class="btn" data-act="home">처음으로</button></div></section>';
 }
 
@@ -285,7 +303,8 @@ document.addEventListener("click", e => {
   if (a === "qans") return quizAnswer(+id);
   if (a === "qnext") return quizNext();
   if (a === "wrong") return startWrong();
-  if (a === "law") { S.settings.law = id || "전체"; save(); lastRun = null; view = "home"; render(); window.scrollTo(0, 0); return; }
+  if (a === "subj") { S.settings.subj = id || "전체"; save(); lastRun = null; view = "home"; render(); window.scrollTo(0, 0); return; }
+  if (a === "law") { if (curSubj() === "법규") S.settings.law = id || "전체"; else S.settings.units = Object.assign({}, S.settings.units, { [curSubj()]: id || "전체" }); save(); lastRun = null; view = "home"; render(); window.scrollTo(0, 0); return; }
   if (a === "topics" || a === "settings" || a === "home") { view = a; lastRun = a === "home" ? lastRun : null; render(); window.scrollTo(0, 0); return; }
   if (a === "quota") { S.settings.quota = Math.max(5, +id || 6); save(); view = "home"; return render(); }
 });
