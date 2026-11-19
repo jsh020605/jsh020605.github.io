@@ -400,7 +400,7 @@ function viewHome() {
 }
 
 /* ============ 카드 공부 ============ */
-function startRun(card) { stopVoice(); run = { card, box0: card.box || 0, histIdx: null, counted: false, step: 0, gate: false, picks: {}, checked: false, explain: "", grade: null, busy: false, err: "" }; render(); window.scrollTo(0, 0); }
+function startRun(card) { stopVoice(); run = { card, box0: card.box || 0, histIdx: null, counted: false, step: 0, gate: false, picks: {}, checked: false, explain: "", grade: null, busy: false, err: "", fresh: null }; if (isReviewCard(card)) startFresh(run); render(); window.scrollTo(0, 0); }
 const quizScore = () => (run.card.quiz || []).reduce((n, q, i) => n + (run.picks[i] === q.answer ? 1 : 0), 0);
 function block(title, arr, k) {
   if (!arr || !arr.length) return "";
@@ -418,7 +418,11 @@ function viewRun() {
   if (cur === "concept") {
     h += '<div class="concept">' + esc(c.concept) + "</div>" + ((c.keyPoints || []).length ? '<div class="gb ok"><h3>📌 핵심 포인트</h3><ul>' + c.keyPoints.map(k => "<li>" + esc(k) + "</li>").join("") + "</ul></div>" : "") +
       '<div class="row">' + (window.speechSynthesis ? '<button class="btn" data-act="speakConcept">🔊 읽어 주기</button>' : "") + '<button class="btn primary" data-act="next">다음 섹션으로 →</button></div>';
+  } else if (cur === "quiz" && run.fresh && run.fresh.busy) {
+    h += '<div class="notice">🆕 지난번과 <b>다른 새 문제</b>를 만드는 중이에요…' + (run.fresh.msg ? '<br><span class="small">' + esc(run.fresh.msg) + "</span>" : "") + '</div><div class="row"><button class="btn ghost" data-act="useOld">기다리지 않고 지난번 문제로 풀기</button></div>';
   } else if (cur === "quiz") {
+    if (run.fresh && run.fresh.n && !run.checked) h += '<div class="notice ok">🆕 지난번과 다른 새 문제 ' + run.fresh.n + "개예요.</div>";
+    if (run.fresh && run.fresh.err && !run.checked) h += '<div class="notice">' + esc(run.fresh.err) + "</div>";
     h += (c.quiz || []).map((q, qi) => { const pick = run.picks[qi]; return '<div class="q"><p>' + (qi + 1) + ". " + esc(q.q) + '</p><div class="opts">' + (q.choices || []).map((ch, ci) => { let cls = "opt"; if (run.checked) { if (ci === q.answer) cls += " right"; else if (ci === pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="pick" data-q="' + qi + '" data-c="' + ci + '" aria-pressed="' + (pick === ci) + '"' + (run.checked ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" + (run.checked ? '<div class="why">' + (pick === q.answer ? "정답! " : "정답은 " + (q.answer + 1) + "번. ") + esc(q.why || "") + "</div>" : "") + "</div>"; }).join("");
     const all = (c.quiz || []).every((_, i) => run.picks[i] != null);
     h += run.checked ? '<div class="row"><span class="chip ' + (quizScore() === (c.quiz || []).length ? "ok" : "") + '">' + quizScore() + " / " + (c.quiz || []).length + ' 맞음</span><button class="btn primary" data-act="next">다음 섹션으로 →</button></div>' : '<div class="row"><button class="btn omr" data-act="check"' + (all ? "" : " disabled") + ">채점하기</button></div>";
@@ -462,7 +466,7 @@ function buildEntry() {
   const ch = (q, i) => { const v = asArr(q.choices)[i]; return v == null ? "안 고름" : String(v); };
   return {
     date: today(), quiz: qs + "/" + total, explain: g ? (g.score | 0) : null,
-    asked: quiz.map((q, i) => ({ q: String(q.q || ""), ok: run.picks[i] === q.answer })),
+    asked: quiz.map((q, i) => ({ q: String(q.q || ""), ok: run.picks[i] === q.answer, right: ch(q, q.answer) })),
     wrongQs: quiz.map((q, i) => ({ q, i })).filter(o => run.picks[o.i] !== o.q.answer).map(({ q, i }) => ({ q: String(q.q || ""), mine: ch(q, run.picks[i]), right: ch(q, q.answer), why: String(q.why || "") })),
     missed: g ? asArr(g.missing).map(m => typeof m === "object" ? { point: String(m.point || ""), explain: String(m.explain || "") } : { point: String(m), explain: "" }).filter(x => x.point) : [],
     wrongSaid: g ? asArr(g.wrong).map(w => typeof w === "object" ? { said: String(w.said || ""), fix: String(w.fix || "") } : { said: String(w), fix: "" }).filter(x => x.said || x.fix) : []
@@ -495,7 +499,7 @@ async function reviewStart() {
   const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장." + TERMS + "틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
   try { const arr = await gemini(prompt, 60000, m => { rev.busyMsg = m; render(); }); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
-  if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
+  if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).concat(asArr(c.quiz0)).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
   rev.busy = false; render();
 }
 function viewReview() {
@@ -529,22 +533,33 @@ function isRepeat(item, seen) {
     return false;
   });
 }
-function drillSeen() { const v = lsGet("gqw.drillSeen", {}); return v && v.day === today() ? asArr(v.qs) : []; }
-function drillRemember(items) { const qs = drillSeen().concat(items.map(it => ({ q: it.q, choices: it.choices, right: qNorm(it.choices[it.answer]) }))).slice(-300); lsSet("gqw.drillSeen", { day: today(), qs }); }
+const SEEN_K = "gqw.seenQs", SEEN_DAYS = 30;   // 최근 30일 동안 낸 문제는 다시 내지 않는다
+function drillSeen() {
+  const from = addDays(today(), -SEEN_DAYS); let loc = lsGet(SEEN_K, null);
+  if (!Array.isArray(loc)) { const o = lsGet("gqw.drillSeen", {}); loc = asArr(o && o.qs).map(x => Object.assign({ d: (o && o.day) || today() }, x)); }
+  const out = loc.filter(x => x && x.q && x.d >= from), have = new Set(out.map(x => qNorm(x.q)));
+  Object.keys(S.days).filter(d => d >= from).forEach(d => asArr(S.days[d].qs).forEach(x => { if (x && x.q && !have.has(qNorm(x.q))) { have.add(qNorm(x.q)); out.push({ d, q: x.q, choices: [], right: x.r || "" }); } }));
+  return out;
+}
+function drillRemember(items) {
+  const t = today(), add = items.map(it => ({ d: t, q: it.q, choices: it.choices, right: qNorm(it.choices[it.answer]) }));
+  lsSet(SEEN_K, drillSeen().filter(x => asArr(x.choices).length).concat(add).slice(-600));
+  setDay(t, { qs: asArr(dayOf(t).qs).concat(add.map(x => ({ q: x.q, r: x.right }))).slice(-200) });   // 계정에도 저장 → 다른 기기도 같은 문제를 안 냄
+}
 async function drillStart() {
   const cards = todayStudy().map(o => o.c); if (!cards.length) return;
   const target = drillTarget(cards.length);
   drill = { items: [], i: 0, right: 0, busy: true, err: "", done: false, busyMsg: "", target }; render(); window.scrollTo(0, 0);
   // 이미 낸 문제 = 카드 원래 퀴즈 + 복습 세션 + 오늘 앞서 푼 복습 문제
   const seen = [];
-  cards.forEach(c => asArr(c.quiz).forEach(q => seen.push({ q: q.q, choices: asArr(q.choices), right: qNorm(asArr(q.choices)[q.answer | 0]) })));
+  cards.forEach(c => cardAsked(c).forEach(o => seen.push(o)));
   drillSeen().forEach(o => seen.push({ q: o.q, choices: asArr(o.choices), right: o.right }));
   const groups = []; for (let i = 0; i < cards.length; i += DRILL_CHUNK) groups.push(cards.slice(i, i + DRILL_CHUNK));
   const per = Math.max(1, Math.ceil(target / groups.length));
   let fails = 0, lastErr = null;
   for (let gi = 0; gi < groups.length && drill && drill.items.length < target; gi++) {
     const grp = groups[gi], want = Math.min(per, target - drill.items.length);
-    const asked = seen.filter(o => grp.some(c => asArr(c.quiz).some(q => q.q === o.q))).map(o => o.q).concat(drillSeen().map(o => o.q).slice(-40));
+    const asked = [].concat(...grp.map(c => cardAsked(c).map(o => o.q))).concat(drillSeen().map(o => o.q).slice(-40));
     const data = grp.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints) }));
     const prompt = "학생이 오늘 공부한 카드들이다. 이 내용으로 한국 물리치료사 국가시험형 5지선다 " + (want + 2) + "문제를 새로 만든다. 한국어로.\n" +
       "가장 중요한 규칙: alreadyAsked에 있는 문제와 같은 문제를 절대 내지 않는다. 문장만 바꾼 문제, 같은 것을 묻고 정답이 같은 문제, 보기만 섞은 문제도 같은 문제로 본다. 학생이 외워서 풀 수 없게, 같은 개념이라도 다른 점을 묻는다: 정의 ↔ 예시 바꾸기, 숫자·기준, 짝짓기, 임상 사례(환자 상황 제시), 옳지 않은 것 고르기, 두 개념 비교, 원인 ↔ 결과 뒤집기. 정답도 alreadyAsked와 다른 보기가 되게 한다.\n" +
@@ -578,6 +593,48 @@ function viewDrill() {
   return '<section class="sheet"><div class="row" style="justify-content:space-between"><span class="chip">🧠 ' + (d.i + 1) + " / " + d.items.length + '</span><button class="btn ghost" data-act="drillExit">나가기</button></div>' + (d.err ? '<div class="notice">' + esc(d.err) + "</div>" : "") + '<span class="small muted">' + esc(it.topic) + '</span><div class="q"><p>' + esc(it.q) + '</p><div class="opts">' +
     it.choices.map((ch, ci) => { let cls = "opt"; if (it.pick != null) { if (ci === it.answer) cls += " right"; else if (ci === it.pick) cls += " wrong"; } return '<button class="' + cls + '" data-act="drillPick" data-c="' + ci + '"' + (it.pick != null ? " disabled" : "") + '><span class="bub">' + (ci + 1) + "</span><span>" + esc(ch) + "</span></button>"; }).join("") + "</div>" +
     (it.pick != null ? '<div class="why">' + (it.pick === it.answer ? "정답! " : "정답은 " + (it.answer + 1) + "번. ") + esc(it.why) + '</div><div class="row"><button class="btn primary" data-act="drillNext">' + (d.i + 1 < d.items.length ? "다음 →" : "결과 보기") + "</button></div>" : "") + "</div></section>";
+}
+
+/* ============ 복습 카드 퀴즈 자동 새로 만들기 ============
+   다시 나온 카드(전에 푼 기록이 있는 카드)는 Gemini가 같은 개념으로 새 문제를 만든다.
+   이 카드로 전에 낸 문제(원래 퀴즈 + 지난 복습 때 문제) + 최근 30일 복습 문제와 같은 건 뺀다(isRepeat).
+   새 문제는 카드에 저장해 다음 복습 때 '이미 낸 문제'가 된다. 원래 퀴즈는 quiz0에 그대로 둔다.
+   Gemini가 안 되면 원래 문제로 한다(안내 표시). */
+const isReviewCard = c => asArr(c.history).some(r => r && r.date && r.date < today());
+function cardAsked(c) {
+  const out = [], have = new Set(), add = o => { const k = qNorm(o.q); if (k && !have.has(k)) { have.add(k); out.push(o); } };
+  [].concat(asArr(c.quiz0), asArr(c.quiz)).forEach(q => q && q.q && add({ q: String(q.q), choices: asArr(q.choices), right: qNorm(asArr(q.choices)[q.answer | 0]) }));
+  asArr(c.history).forEach(r => asArr(r && r.asked).forEach(x => x && x.q && add({ q: String(x.q), choices: [], right: x.right ? qNorm(x.right) : "" })));
+  return out;
+}
+async function freshQuiz(card, onWait) {
+  const n = 3, seen = cardAsked(card).concat(drillSeen());
+  const data = { subject: card.subject, topic: card.topic, question: card.question || "", answer: card.answer || "", concept: String(card.concept || "").slice(0, 1500), keyPoints: asArr(card.keyPoints) };
+  const asked = cardAsked(card).map(o => o.q);
+  const prompt = "학생이 복습하는 카드다. 이 카드 내용으로 한국 물리치료사 국가시험형 5지선다 " + (n + 3) + "문제를 새로 만든다. 한국어로.\n" +
+    "가장 중요한 규칙: alreadyAsked에 있는 문제와 같은 문제를 절대 내지 않는다. 문장만 바꾼 문제, 같은 것을 묻고 정답이 같은 문제, 보기만 섞은 문제도 같은 문제로 본다. 외워서 풀 수 없게 같은 개념의 다른 점을 묻는다: 정의 ↔ 예시, 숫자·기준, 짝짓기, 임상 사례(환자 상황 제시), 옳지 않은 것 고르기, 두 개념 비교, 원인 ↔ 결과. 정답도 alreadyAsked와 다른 보기가 되게 한다.\n" +
+    "숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS +
+    "alreadyAsked(내면 안 되는 문제):\n- " + asked.slice(-60).join("\n- ") + "\n\n카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  const arr = await gemini(prompt, 60000, onWait, 0.9), out = [];
+  asArr(arr).forEach(x => {
+    if (!x || !x.q || !Array.isArray(x.choices) || x.choices.length < 4 || out.length >= n) return;
+    const it = { q: String(x.q), choices: x.choices.slice(0, 5).map(String), answer: Math.max(0, Math.min(Math.min(x.choices.length, 5) - 1, x.answer | 0)), why: String(x.why || "") };
+    if (isRepeat(it, seen)) return;
+    seen.push({ q: it.q, choices: it.choices, right: qNorm(it.choices[it.answer]) });
+    out.push(it);
+  });
+  return out;
+}
+function startFresh(r) {
+  if (!GEMINI_API_KEYS().length && !window.__fakeGemini) { r.fresh = { err: "Gemini 키가 없어 지난번 문제로 해요(설정에서 키를 넣으면 복습 때마다 새 문제가 나와요)." }; return; }
+  const card = r.card; r.fresh = { busy: true, msg: "" };
+  const redraw = () => { if (run === r && STEPS[r.step] !== "explain") render(); };
+  freshQuiz(card, m => { if (run === r && r.fresh && r.fresh.busy) { r.fresh.msg = m; redraw(); } }).then(qs => {
+    if (run !== r || !r.fresh || !r.fresh.busy) return;
+    if (qs.length && !Object.keys(r.picks).length && !r.checked) { if (!asArr(card.quiz0).length) card.quiz0 = asArr(card.quiz); card.quiz = qs; r.fresh = { n: qs.length }; }
+    else r.fresh = { err: "이번엔 새 문제를 만들지 못해 지난번 문제로 해요." };
+    redraw();
+  }).catch(e => { if (run !== r || !r.fresh || !r.fresh.busy) return; r.fresh = { err: gErr(e) + " 지난번 문제로 해요." }; redraw(); });
 }
 
 /* ============ 카드함 ============ */
@@ -635,6 +692,7 @@ document.addEventListener("click", async e => {
   if (a === "exitRun") { stopVoice(); const was = run && run.histIdx != null; run = null; if (!was) lastDone = null; tab = "home"; return setTab("home"); }
   if (a === "next") { stopVoice(); run.gate = true; render(); window.scrollTo(0, 0); return; }
   if (a === "gateGo") { run.gate = false; run.step++; render(); window.scrollTo(0, 0); return; }
+  if (a === "useOld") { if (run && run.fresh) run.fresh = { err: "지난번 문제로 풀어요." }; return render(); }
   if (a === "pick") { run.picks[+b.dataset.q] = +b.dataset.c; return render(); }
   if (a === "check") { run.checked = true; try { recordCard(); } catch (x) {} return render(); }
   if (a === "speakConcept") return speak(run.card.concept);
