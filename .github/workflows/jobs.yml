@@ -1,0 +1,27 @@
+name: 채용 공고 자동 수집
+
+on:
+  schedule:
+    - cron: "0 22 * * *"   # 매일 오전 7시 (한국 시간)
+    - cron: "0 9 * * *"    # 매일 오후 6시 (한국 시간)
+  workflow_dispatch:        # Actions 탭에서 「Run workflow」로 바로 실행
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 굿잡피티·메디잡 공고 모으기
+        run: python3 tools/jobs_auto.py
+      - name: 바뀐 게 있으면 저장
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cal/jobs.json
+          git diff --cached --quiet || (git commit -m "채용 공고 자동 갱신" && git push)
