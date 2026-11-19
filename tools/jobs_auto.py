@@ -74,9 +74,10 @@ def kind_of(name, cat=""):
 
 # ---------- 굿잡피티 ----------
 def goodjob(opener):
-    items = []
+    items, rows_seen = [], 0
     for page in (1, 2, 3):
         s = fetch(opener, "https://www.goodjobpt.com/bbs/board.php?bo_table=job&page=%d" % page)
+        rows_seen += len(re.findall(r"wr_id=\d+", s))
         for row in re.findall(r"<tr[^>]*>(.*?)</tr>", s, re.S):
             m = re.search(r"wr_id=(\d+)", row)
             if not m: continue
@@ -106,6 +107,8 @@ def goodjob(opener):
                           "pay": "", "deadline": dl, "url": f"https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id={m.group(1)}",
                           "source": "굿잡피티", "kind": kind_of(name, cat), "_key": "gj" + m.group(1), "_name": name})
         time.sleep(1.5)
+    if not rows_seen:
+        raise RuntimeError("굿잡피티 목록을 못 읽음(접속 차단?)")
     return dedupe(items)
 
 
@@ -119,7 +122,9 @@ def medijob(opener):
         s = fetch(opener, "https://www.medijob.cc/rec/cag/sub/rec_cag_101_list_01?" + q,
                   headers={"X-Requested-With": "XMLHttpRequest", "Referer": base})
         blocks = re.split(r'<div class="rec_li\s*"\s+id="', s)[1:]
-        if not blocks: break
+        if not blocks:
+            if page == 1: raise RuntimeError("메디잡 목록을 못 읽음(접속 차단?)")
+            break
         for b in blocks:
             sid = re.match(r"(\d+)", b)
             if not sid: continue
