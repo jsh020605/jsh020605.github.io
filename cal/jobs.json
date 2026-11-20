@@ -1,35 +1,9 @@
 {
- "at": "11/19 21:15",
- "date": "2026-11-19",
- "summary": "총 46건(신규 9). 사이트별 굿잡피티 9·메디잡 34·사람인 4 (자동 수집 11/19 21:15, 굿잡피티 9, 메디잡 3). 오늘·내일 마감: 강동경희대학교병원, 연세더바른병원, 123스텝업병원, 나누리인천주안병원, 하병원.",
+ "at": "11/20 18:00",
+ "date": "2026-11-20",
+ "summary": "총 45건(신규 10). 사이트별 메디잡 34·굿잡피티 8·사람인 4 (자동 수집 11/20 18:00, 굿잡피티 8, 메디잡 1). 오늘·내일 마감: 123스텝업병원, 나누리인천주안병원, 하병원.",
  "checked": "자동 수집 (매일)",
  "items": [
-  {
-   "hospital": "강동경희대학교병원 (재활의학과 의료기술직 물리치료사(휴직대체…)",
-   "region": "서울",
-   "type": "계약직",
-   "career": "경력무관",
-   "pay": "",
-   "deadline": "2026-11-19",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6324",
-   "source": "굿잡피티",
-   "kind": "대학병원",
-   "first": "2026-11-17",
-   "isNew": false
-  },
-  {
-   "hospital": "연세더바른병원 (통증·루틴)",
-   "region": "김포시",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "내규",
-   "deadline": "2026-11-19",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3750839",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
   {
    "hospital": "123스텝업병원 (5,8호선 천호역 \"123스텝업병원\" 물…)",
    "region": "서울 강동구",
@@ -601,6 +575,19 @@
    "isNew": false,
    "kind": "병원(종류 확인 중)",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "흥K병원 (시흥 능곡 흥K병원에서 계약직(5개월)…)",
+   "region": "시흥시",
+   "type": "계약직",
+   "career": "경력무관",
+   "pay": "",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3780180",
+   "source": "메디잡",
+   "kind": "병원(종류 확인 중)",
+   "first": "2026-11-20",
+   "isNew": true
   }
  ]
 }
