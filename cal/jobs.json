@@ -1,48 +1,9 @@
 {
- "at": "11/20 18:00",
- "date": "2026-11-20",
- "summary": "총 45건(신규 10). 사이트별 메디잡 34·굿잡피티 8·사람인 4 (자동 수집 11/20 18:00, 굿잡피티 8, 메디잡 1). 오늘·내일 마감: 123스텝업병원, 나누리인천주안병원, 하병원.",
+ "at": "11/21 07:10",
+ "date": "2026-11-21",
+ "summary": "총 43건(신규 2). 사이트별 굿잡피티 8·메디잡 32·사람인 4 (자동 수집 11/21 07:10, 굿잡피티 8, 메디잡 2). 오늘·내일 마감: 강북삼성병원.",
  "checked": "자동 수집 (매일)",
  "items": [
-  {
-   "hospital": "123스텝업병원 (5,8호선 천호역 \"123스텝업병원\" 물…)",
-   "region": "서울 강동구",
-   "type": "파트타임(시간제)",
-   "career": "경력 1년",
-   "pay": "물리치료사 일급: 70,000 원",
-   "deadline": "2026-11-20",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3779231",
-   "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
-   "first": "2026-11-19",
-   "isNew": true
-  },
-  {
-   "hospital": "나누리인천주안병원 (일요일 알바)",
-   "region": "인천 미추홀구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "아르바이트, 내규",
-   "deadline": "2026-11-20",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3770325",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "하병원 (11/21 오후 알바)",
-   "region": "서울 강남구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "아르바이트, 시급 17,500원",
-   "deadline": "2026-11-20",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3777059",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
   {
    "hospital": "강북삼성병원 (서초지역 부속의원 물리치료사 모집)",
    "region": "서울",
@@ -54,7 +15,7 @@
    "source": "굿잡피티",
    "kind": "대학병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "광혜병원 (신입가능)",
@@ -80,7 +41,7 @@
    "source": "메디잡",
    "kind": "병원(종류 확인 중)",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "서울아산병원 (재활의학과 연구원(물리치료사) 모집)",
@@ -93,7 +54,7 @@
    "source": "굿잡피티",
    "kind": "대학병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "하병원 (휴일고정 알바)",
@@ -119,7 +80,7 @@
    "source": "굿잡피티",
    "kind": "어린이재활병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "아너스힐병원 김포 (육아휴직 대체)",
@@ -146,6 +107,19 @@
    "isNew": false,
    "kind": "어린이재활병원",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "원진재단부설 녹색병원 (녹색병원(서울) 물리치료사 모집공고 (정…)",
+   "region": "서울 중랑구",
+   "type": "정규직",
+   "career": "경력 1년",
+   "pay": "",
+   "deadline": "2026-12-04",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3780308",
+   "source": "메디잡",
+   "kind": "병원(종류 확인 중)",
+   "first": "2026-11-21",
+   "isNew": true
   },
   {
    "hospital": "강동삼성재활의학과병원",
@@ -301,7 +275,7 @@
    "source": "메디잡",
    "kind": "병원(종류 확인 중)",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "나누리인천주안병원 (평일 알바)",
@@ -431,7 +405,7 @@
    "source": "굿잡피티",
    "kind": "종합병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "수병원 (도수치료사)",
@@ -483,7 +457,7 @@
    "source": "굿잡피티",
    "kind": "정형·척추 전문병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "인본병원 (매주 토요일 알바)",
@@ -509,7 +483,7 @@
    "source": "굿잡피티",
    "kind": "종합병원",
    "first": "2026-11-19",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "저스트병원 (계약직)",
