@@ -124,9 +124,9 @@ const fbLink = () => location.origin + location.pathname + "#fb=" + btoa(unescap
 
 /* ============ 저장소: 로그인 전엔 이 기기, 로그인하면 Firebase ============ */
 const DATA_K = "gqw.data";
-let S = { cards: [], days: {}, settings: { quotaCards: 15 } };
+let S = { cards: [], days: {}, settings: { quotaCards: 30 } };
 let user = null, fb = null, fdb = null, saveState = "", authErr = "";
-function localLoad() { const o = lsGet(DATA_K, {}); S.cards = Object.values(o.cards || {}); S.days = o.days || {}; S.settings = Object.assign({ quotaCards: 15 }, o.settings || {}); }
+function localLoad() { const o = lsGet(DATA_K, {}); S.cards = Object.values(o.cards || {}); S.days = o.days || {}; S.settings = Object.assign({ quotaCards: 30 }, o.settings || {}); if (S.settings.quotaCards === 15) S.settings.quotaCards = 30; }
 function localSaveAll() { const cards = {}; S.cards.forEach(c => cards[c.id] = c); lsSet(DATA_K, { cards, days: S.days, settings: S.settings }); }
 const clean = o => JSON.parse(JSON.stringify(o));
 const uref = () => fdb.collection("users").doc(user.uid);
@@ -172,7 +172,7 @@ async function cloudLoad() {
   S.cards.forEach(c => { const k = byId[c.id]; if (!k || (c.history || []).length > (k.history || []).length) { byId[c.id] = Object.assign({}, k || {}, c); up.push(byId[c.id]); } });
   Object.keys(S.days).forEach(d => { const a = S.days[d], b = cloudDays[d]; if (!b || (a.cardsDone || 0) > (b.cardsDone || 0)) { cloudDays[d] = a; up.push({ __day: d, v: a }); } });
   S.cards = Object.values(byId); S.days = cloudDays;
-  if (u.exists && u.data().settings) S.settings = Object.assign({ quotaCards: 15 }, u.data().settings);
+  if (u.exists && u.data().settings) { S.settings = Object.assign({ quotaCards: 30 }, u.data().settings); if (S.settings.quotaCards === 15) S.settings.quotaCards = 30; }
   localSaveAll();
   up.forEach(x => x.__day ? cloudPut("day", x.__day, x.v) : cloudPut("card", x.id, x));
 }
@@ -209,7 +209,7 @@ async function signInEmail(create) {
 
 /* ============ 하루 기록·할당량 ============ */
 const dayOf = d => Object.assign({ cardsDone: 0, reviewDone: 0, met: false }, S.days[d] || {});
-const isMet = d => dayOf(d).cardsDone >= S.settings.quotaCards;
+const isMet = d => dayOf(d).cardsDone >= S.settings.quotaCards || (d === today() && dayOf(d).cardsDone >= PER_SUBJ && !plan().length);
 function setDay(d, patch) { const x = Object.assign(dayOf(d), patch); x.met = x.cardsDone >= S.settings.quotaCards; S.days[d] = x; cloudPut("day", d, x); }
 function streak() { let n = 0, d = today(); if (!isMet(d)) d = addDays(d, -1); while (S.days[d] && S.days[d].met) { n++; d = addDays(d, -1); } return n; }
 /* 과목 묶음: 공중보건학·피부물리치료(안 배운 과목)를 맨 앞에, 법규는 법규 퀘스트(../law/)에서만 한다 */
@@ -232,6 +232,59 @@ const due = () => {
   return out;
 };
 const todayStudy = () => { const t0 = today(); return S.cards.map(c => ({ c, h: (c.history || []).filter(x => x.date === t0).slice(-1)[0] })).filter(x => x.h); };
+/* ============ 오늘 계획 (사용자 2026-11-21) ============
+   - 하루 30장 = 6과목 × 5장.
+   - 요일: 월~목 = 새 카드(모의고사), 금·토 = 새 주제(빈출), 일 = 전체 복습(새 카드 없음).
+   - 공중보건학·피부물리치료·전기치료·심폐 = 매일 새 카드 3장 + 복습 2장 (모자라면 서로 채움).
+   - 해부학·운동학(뉴만) = 새 카드 5장 (모자라면 복습으로 채움).
+   - 비슷한 카드는 아래로: 최근 7일에 공부한 카드·오늘 앞에 놓인 카드와 내용이 많이 겹치면 뒤로 보낸다. */
+const PER_SUBJ = 5;
+const SUBJ6 = ["공중보건학", "피부물리치료", "해부학", "운동학(뉴만)", "전기치료", "심폐"];
+const MUST4 = ["공중보건학", "피부물리치료", "전기치료", "심폐"];
+const dayKind = (d = today()) => { const w = new Date(d + "T12:00:00").getDay(); return w === 0 ? "review" : w >= 5 ? "topic" : "mock"; };
+const DAY_LABEL = { mock: "🆕 새 카드 날 (월~목 · 모의고사)", topic: "🧩 새 주제 날 (금·토 · 국시 빈출)", review: "🔁 전체 복습 날 (일요일 · 새 카드 없음)" };
+const cardText = c => [c.topic, c.concept && String(c.concept).slice(0, 300), (c.keyPoints || []).join(" ")].join(" ");
+const grams = t => { const n = String(t || "").replace(/[\s.,·()\[\]=:\/~\-→]+/g, ""), g = new Set(); for (let i = 0; i < n.length - 1; i++) g.add(n.slice(i, i + 2)); return g; };
+const gramsOf = c => c._g || (c._g = grams(cardText(c)));
+const simOf = (a, b) => { const A = gramsOf(a), B = gramsOf(b); if (!A.size || !B.size) return 0; let k = 0; A.forEach(x => { if (B.has(x)) k++; }); return k / Math.min(A.size, B.size); };
+const SIM_LIMIT = 0.25;   // 실제 카드로 맞춤: 관계없는 카드 ≈0.03, 비슷한 주제 ≈0.3
+const isNewCard = c => !(c.history || []).length;
+function plan() {
+  const t0 = today(), kind = dayKind(t0), wk = addDays(t0, -7);
+  const done = todayStudy().map(o => o.c), doneIds = new Set(done.map(c => c.id));
+  const recent = S.cards.filter(c => (c.history || []).some(h => h.date >= wk));   // 최근 7일에 본 카드
+  const pool = S.cards.filter(c => !isLaw(c) && !doneIds.has(c.id));
+  const picked = [];
+  const novelty = (c, ref) => ref.reduce((m, r) => Math.max(m, r.id === c.id ? 0 : simOf(c, r)), 0);   // 클수록 비슷
+  SUBJ6.forEach(k => {
+    const left = Math.max(0, PER_SUBJ - done.filter(c => grpOf(c) === k).length);
+    if (!left) return;
+    const mine = pool.filter(c => grpOf(c) === k);
+    const fresh = mine.filter(isNewCard), seen = mine.filter(c => !isNewCard(c));
+    // 복습: 복습할 날이 된 카드 먼저, 없으면 오래전에 본 카드
+    const rev = seen.slice().sort((a, b) => ((a.nextReview || "") <= t0 ? 0 : 1) - ((b.nextReview || "") <= t0 ? 0 : 1) || byNext(a, b));
+    // 새 카드: 최근에 본 것·이미 고른 것과 덜 비슷한 순서
+    const nov = fresh.map(c => ({ c, s: novelty(c, recent.concat(picked)) })).sort((a, b) => a.s - b.s || String(a.c.createdAt || "").localeCompare(String(b.c.createdAt || ""))).map(o => o.c);
+    let wantNew = kind === "review" ? 0 : MUST4.includes(k) ? 3 : 5;
+    let wantRev = left - wantNew;
+    if (kind !== "review" && MUST4.includes(k) && left < 5) { wantNew = Math.min(wantNew, Math.ceil(left / 2)); wantRev = left - wantNew; }
+    let a = nov.slice(0, Math.max(0, wantNew)), b = rev.slice(0, Math.max(0, wantRev));
+    if (a.length < wantNew) b = rev.slice(0, Math.max(0, left - a.length));                      // 새 카드가 모자라면 복습으로
+    if (b.length < wantRev && kind !== "review") a = nov.slice(0, Math.max(0, left - b.length));   // 복습이 모자라면 새 카드로
+    a.concat(b).slice(0, left).forEach(c => { c._kind = isNewCard(c) ? "new" : "rev"; picked.push(c); });
+  });
+  // 6과목 카드가 모자라 30장이 안 되면 '기타' 과목 카드로 채운다 (새 카드 먼저)
+  const room = S.settings.quotaCards - done.length - picked.length;
+  if (room > 0) pool.filter(c => grpOf(c) === "기타" && !picked.includes(c)).sort((x, y) => (isNewCard(x) ? 0 : 1) - (isNewCard(y) ? 0 : 1) || byNext(x, y))
+    .filter(c => kind !== "review" || !isNewCard(c)).slice(0, room).forEach(c => { c._kind = isNewCard(c) ? "new" : "rev"; picked.push(c); });
+  // 비슷한 카드는 아래로: 오늘 이미 한 카드나 앞에 놓인 카드와 많이 겹치면 뒤로
+  const front = [], back = [];
+  const byGroup = {}; picked.forEach(c => (byGroup[grpOf(c)] = byGroup[grpOf(c)] || []).push(c));
+  const ORDER = SUBJ6.concat(["기타"]), mixed = []; for (let i = 0; ORDER.some(k => byGroup[k] && byGroup[k][i]); i++) ORDER.forEach(k => { if (byGroup[k] && byGroup[k][i]) mixed.push(byGroup[k][i]); });
+  mixed.forEach(c => { const near = done.concat(front).some(r => simOf(c, r) >= SIM_LIMIT); c._similar = near; (near ? back : front).push(c); });
+  return front.concat(back);
+}
+
 
 /* ============ Gemini ============ */
 /* 키 로테이션(Round-Robin) + 지연 재시도
@@ -369,9 +422,15 @@ function render() {
 }
 
 /* ============ 홈 ============ */
+function planList(list) {
+  const row = c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(grpOf(c)) + " · " + (c._kind === "new" ? "🆕 새 카드" : "🔁 복습" + (c.box ? " " + c.box + "단계" : "")) + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>';
+  const front = list.filter(c => !c._similar), back = list.filter(c => c._similar);
+  return '<ul class="list">' + front.map(row).join("") + "</ul>" +
+    (back.length ? '<h3 class="sub">↓ 앞 카드와 비슷해서 뒤로 보낸 카드 <span class="small muted">' + back.length + '장</span></h3><ul class="list">' + back.map(row).join("") + "</ul>" : "");
+}
 function viewHome() {
   const t0 = today(), q = S.settings.quotaCards, x = dayOf(t0), pct = Math.min(100, Math.round(Math.min(x.cardsDone, q) / q * 100)), met = isMet(t0);
-  const done = todayStudy(), doneIds = new Set(done.map(o => o.c.id)), before = due().filter(c => !doneIds.has(c.id));
+  const done = todayStudy(), doneIds = new Set(done.map(o => o.c.id)), before = plan();
   let h = "";
   if (!S.cards.length) h += '<div class="notice">카드가 아직 없어요. <b>설정 → 카드 가져오기</b>에서 Claude가 만든 카드 파일(JSON)을 넣어 주세요.</div>';
   if (!user) h += '<div class="notice">' + (fb ? "로그인하지 않아 이 기기에만 저장돼요. <b>설정</b>에서 로그인하면 핸드폰·맥이 같은 기록을 봐요." : "아직 Firebase가 연결되지 않아 이 기기에만 저장돼요. <b>설정</b>에서 연결해 주세요.") + "</div>";
@@ -381,8 +440,10 @@ function viewHome() {
   const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
   if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
   h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">기말고사 퀘스트</a>(법규)에서 따로 해요.</p>';
+  const doneBy = k => done.filter(o => grpOf(o.c) === k).length;
+  h += '<section class="sheet"><h2>' + DAY_LABEL[dayKind(t0)] + '</h2><p class="small muted" style="margin:0">과목마다 5장씩 하루 30장 · 공중보건학·피부·전기치료·심폐는 매일 새 카드 + 복습</p><div class="row" style="gap:6px;flex-wrap:wrap">' + SUBJ6.map(k => '<span class="chip' + (doneBy(k) >= PER_SUBJ ? " ok" : " mute") + '">' + k + " " + Math.min(doneBy(k), PER_SUBJ) + "/" + PER_SUBJ + "</span>").join("") + "</div></section>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
-    (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + GROUPS.filter(k => before.some(c => grpOf(c) === k)).map(k => { const l = before.filter(c => grpOf(c) === k); return '<h3 class="sub">' + k + ' <span class="small muted">' + l.length + "장</span></h3>" + '<ul class="list">' + l.slice(0, 6).map(c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(c.subject || "") + " · " + (c.box ? "복습 " + c.box + "단계" : "새 카드") + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>').join("") + (l.length > 6 ? '<li class="small muted">… ' + (l.length - 6) + "장 더</li>" : "") + "</ul>"; }).join("") : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
+    (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + planList(before) : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
   const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>✅ 학습 완료</h2><span class="chip ok">' + done.length + "장</span></div>" +
     (done.length ? '<ul class="list">' + done.slice().reverse().map(({ c, h: r }) => '<li style="flex-direction:column;align-items:stretch"><div class="row" style="justify-content:space-between"><b>' + esc(c.topic) + '</b><span class="small muted">퀴즈 ' + esc(r.quiz) + " 맞음" + (r.explain != null ? " · 설명 " + r.explain + "점" : "") + "</span></div>" +
@@ -688,7 +749,7 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, id = b.dataset.id;
   if (a === "study") { const c = S.cards.find(x => x.id === id); if (c) startRun(c); return; }
-  if (a === "studyNext") { const ids = new Set(todayStudy().map(o => o.c.id)), c = due().find(x => !ids.has(x.id)); if (c) startRun(c); return; }
+  if (a === "studyNext") { const c = plan()[0]; if (c) startRun(c); return; }
   if (a === "exitRun") { stopVoice(); const was = run && run.histIdx != null; run = null; if (!was) lastDone = null; tab = "home"; return setTab("home"); }
   if (a === "next") { stopVoice(); run.gate = true; render(); window.scrollTo(0, 0); return; }
   if (a === "gateGo") { run.gate = false; run.step++; render(); window.scrollTo(0, 0); return; }
