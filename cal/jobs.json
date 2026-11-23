@@ -1,7 +1,7 @@
 {
- "at": "11/23 14:26",
+ "at": "11/23 14:33",
  "date": "2026-11-23",
- "summary": "총 43건(신규 2). 사이트별 메디잡 34·굿잡피티 7·사람인 3 (자동 수집 11/23 14:26, 굿잡피티 5, 메디잡 2).",
+ "summary": "총 36건(신규 2). 사이트별 메디잡 30·굿잡피티 5·사람인 2 (자동 수집 11/23 14:33, 굿잡피티 5, 메디잡 2, 마감 확인으로 뺌 7건(의료법인 지암의료재단 퍼스트병원, 마디세상병원, 서울안강병원, 서울이왕병원, 서울현대병원, 저스트병원)).",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -174,19 +174,6 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "의료법인 지암의료재단 퍼스트병원 (FES·통증 정직원)",
-   "region": "인천 제물포구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "정직원, 내규",
-   "deadline": "상시채용",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3761014",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "병원(종류 확인 중)",
-   "first": "2026-11-17"
-  },
-  {
    "hospital": "(의)장산의료재단 이춘택병원 (육아휴직 대체)",
    "region": "수원시 팔달구",
    "type": "병원",
@@ -317,19 +304,6 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "마디세상병원 (스포츠재활연구소에서 근무할 물리치료사 및…)",
-   "region": "서울",
-   "type": "정규직",
-   "career": "경력무관",
-   "pay": "",
-   "deadline": "채용시마감",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6336",
-   "source": "굿잡피티",
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17",
-   "isNew": false
-  },
-  {
    "hospital": "박진영병원 (물리치료실)",
    "region": "안산시 단원구",
    "type": "병원",
@@ -354,45 +328,6 @@
    "isNew": false,
    "kind": "정형·척추 전문병원",
    "first": "2026-11-17"
-  },
-  {
-   "hospital": "서울안강병원 (NDT 알바)",
-   "region": "서울 서초구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "아르바이트, 12타임 15만원",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3773254",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "서울이왕병원 (토요일 오전)",
-   "region": "인천 미추홀구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "주말 파트, 내규",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3776090",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "서울현대병원 (서울현대병원 물리치료팀 팀장 구인공고)",
-   "region": "서울",
-   "type": "정규직 · 계약직",
-   "career": "경력",
-   "pay": "",
-   "deadline": "채용시마감",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6334",
-   "source": "굿잡피티",
-   "kind": "종합병원",
-   "first": "2026-11-19",
-   "isNew": false
   },
   {
    "hospital": "수병원 (도수치료사)",
@@ -486,19 +421,6 @@
    "isNew": false
   },
   {
-   "hospital": "저스트병원 (계약직)",
-   "region": "인천 미추홀구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "계약직, 내규",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3768214",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
    "hospital": "주안퍼스트병원 (21일 토 하루 알바)",
    "region": "인천 미추홀구",
    "type": "병원",
@@ -509,19 +431,6 @@
    "source": "메디잡",
    "isNew": false,
    "kind": "병원(종류 확인 중)",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "칠석의료재단 사랑의병원 (재활치료센터)",
-   "region": "안산시 상록구",
-   "type": "종합병원",
-   "career": "신입",
-   "pay": "계약직",
-   "deadline": "채용시마감",
-   "url": "https://www.saramin.co.kr/zf_user/jobs/list/job-category?cat_kewd=466",
-   "source": "사람인",
-   "isNew": false,
-   "kind": "종합병원",
    "first": "2026-11-17"
   },
   {
