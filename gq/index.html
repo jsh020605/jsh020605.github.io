@@ -209,8 +209,9 @@ async function signInEmail(create) {
 
 /* ============ 하루 기록·할당량 ============ */
 const dayOf = d => Object.assign({ cardsDone: 0, reviewDone: 0, met: false }, S.days[d] || {});
-const isMet = d => dayOf(d).cardsDone >= S.settings.quotaCards || (d === today() && dayOf(d).cardsDone >= PER_SUBJ && !plan().length);
-function setDay(d, patch) { const x = Object.assign(dayOf(d), patch); x.met = x.cardsDone >= S.settings.quotaCards; S.days[d] = x; cloudPut("day", d, x); }
+const quotaFor = d => dayKind(d) === "review" ? (S.settings.reviewQuota || 60) : S.settings.quotaCards;
+const isMet = d => dayOf(d).cardsDone >= quotaFor(d) || (d === today() && dayOf(d).cardsDone >= PER_SUBJ && !plan().length);
+function setDay(d, patch) { const x = Object.assign(dayOf(d), patch); x.met = x.cardsDone >= quotaFor(d); S.days[d] = x; cloudPut("day", d, x); }
 function streak() { let n = 0, d = today(); if (!isMet(d)) d = addDays(d, -1); while (S.days[d] && S.days[d].met) { n++; d = addDays(d, -1); } return n; }
 /* 과목 묶음: 공중보건학·피부물리치료(안 배운 과목)를 맨 앞에, 법규는 법규 퀘스트(../law/)에서만 한다 */
 const GROUPS = ["공중보건학", "피부물리치료", "해부학", "운동학(뉴만)", "전기치료", "심폐", "기타"];
@@ -232,58 +233,61 @@ const due = () => {
   return out;
 };
 const todayStudy = () => { const t0 = today(); return S.cards.map(c => ({ c, h: (c.history || []).filter(x => x.date === t0).slice(-1)[0] })).filter(x => x.h); };
-/* ============ 오늘 계획 (사용자 2026-11-21) ============
-   - 하루 30장 = 6과목 × 5장.
-   - 요일: 월~목 = 새 카드(모의고사), 금·토 = 새 주제(빈출), 일 = 전체 복습(새 카드 없음).
-   - 공중보건학·피부물리치료·전기치료·심폐 = 매일 새 카드 3장 + 복습 2장 (모자라면 서로 채움).
-   - 해부학·운동학(뉴만) = 새 카드 5장 (모자라면 복습으로 채움).
-   - 비슷한 카드는 아래로: 최근 7일에 공부한 카드·오늘 앞에 놓인 카드와 내용이 많이 겹치면 뒤로 보낸다. */
+/* ============ 오늘 계획 (사용자 2026-11-21, 2026-11-23 바꿈) ============
+   - 요일: 월~목 = 새 카드(모의고사), 금 = 새 주제(빈출), 토·일 = 복습 날(일주일에 2번, 많이).
+   - 새 카드 날: 🆕 새 카드를 먼저 보여 준다(6과목 × 5장 = 30장). 복습은 따로 「🔁 복습」 칸에.
+     복습 칸에는 '약한 카드'만 나온다 = 지난번에 퀴즈를 하나라도 틀렸거나 설명이 80점 밑이었던 카드.
+   - '다 맞은 카드'(퀴즈 전부 맞고 설명 80점 이상)는 복습 날(토·일)에만 나온다.
+   - 복습 날: 새 카드 없이 약한 카드 → 다 맞은 카드 순서로 많이(기본 60장).
+   - 비슷한 카드는 아래로: 최근 7일 카드·앞에 놓인 카드와 내용이 많이 겹치면 뒤로 보낸다. */
 const PER_SUBJ = 5;
 const SUBJ6 = ["공중보건학", "피부물리치료", "해부학", "운동학(뉴만)", "전기치료", "심폐"];
 const MUST4 = ["공중보건학", "피부물리치료", "전기치료", "심폐"];
-const dayKind = (d = today()) => { const w = new Date(d + "T12:00:00").getDay(); return w === 0 ? "review" : w >= 5 ? "topic" : "mock"; };
-const DAY_LABEL = { mock: "🆕 새 카드 날 (월~목 · 모의고사)", topic: "🧩 새 주제 날 (금·토 · 국시 빈출)", review: "🔁 전체 복습 날 (일요일 · 새 카드 없음)" };
+const dayKind = (d = today()) => { const w = new Date(d + "T12:00:00").getDay(); return (w === 0 || w === 6) ? "review" : w === 5 ? "topic" : "mock"; };
+const DAY_LABEL = { mock: "🆕 새 카드 날 (월~목 · 모의고사)", topic: "🧩 새 주제 날 (금 · 국시 빈출)", review: "🔁 복습 날 (토·일 · 많이 복습)" };
 const cardText = c => [c.topic, c.concept && String(c.concept).slice(0, 300), (c.keyPoints || []).join(" ")].join(" ");
 const grams = t => { const n = String(t || "").replace(/[\s.,·()\[\]=:\/~\-→]+/g, ""), g = new Set(); for (let i = 0; i < n.length - 1; i++) g.add(n.slice(i, i + 2)); return g; };
 const gramsOf = c => c._g || (c._g = grams(cardText(c)));
 const simOf = (a, b) => { const A = gramsOf(a), B = gramsOf(b); if (!A.size || !B.size) return 0; let k = 0; A.forEach(x => { if (B.has(x)) k++; }); return k / Math.min(A.size, B.size); };
 const SIM_LIMIT = 0.25;   // 실제 카드로 맞춤: 관계없는 카드 ≈0.03, 비슷한 주제 ≈0.3
 const isNewCard = c => !(c.history || []).length;
+const lastRec = c => asArr(c.history).slice(-1)[0];
+// 다 맞은 카드: 마지막 기록에서 퀴즈 전부 맞고 설명 80점 이상
+const isMastered = c => { const r = lastRec(c); if (!r) return false; const [ok, tot] = String(r.quiz || "0/1").split("/").map(Number); return tot > 0 && ok === tot && r.explain != null && r.explain >= 80; };
 function plan() {
   const t0 = today(), kind = dayKind(t0), wk = addDays(t0, -7);
   const done = todayStudy().map(o => o.c), doneIds = new Set(done.map(c => c.id));
-  const recent = S.cards.filter(c => (c.history || []).some(h => h.date >= wk));   // 최근 7일에 본 카드
   const pool = S.cards.filter(c => !isLaw(c) && !doneIds.has(c.id));
-  const picked = [];
-  const novelty = (c, ref) => ref.reduce((m, r) => Math.max(m, r.id === c.id ? 0 : simOf(c, r)), 0);   // 클수록 비슷
-  SUBJ6.forEach(k => {
-    const left = Math.max(0, PER_SUBJ - done.filter(c => grpOf(c) === k).length);
+  const oldestFirst = (a, b) => String((lastRec(a) || {}).date || "").localeCompare(String((lastRec(b) || {}).date || ""));
+  const weak = pool.filter(c => !isNewCard(c) && !isMastered(c));
+  if (kind === "review") {
+    // 복습 날: 약한 카드 먼저(필수 4과목 먼저), 그다음 다 맞은 카드(오래전에 본 것부터)
+    const room = Math.max(0, quotaFor(t0) - done.length);
+    const w = weak.slice().sort((a, b) => (MUST4.includes(grpOf(a)) ? 0 : 1) - (MUST4.includes(grpOf(b)) ? 0 : 1) || oldestFirst(a, b));
+    const m = pool.filter(c => !isNewCard(c) && isMastered(c)).sort(oldestFirst);
+    return w.concat(m).slice(0, room).map(c => (c._kind = "rev", c._similar = false, c));
+  }
+  // 새 카드 날: 과목마다 새 카드 5장 (최근 카드·이미 고른 카드와 덜 비슷한 순서)
+  const recent = S.cards.filter(c => (c.history || []).some(h => h.date >= wk));
+  const novelty = (c, ref) => ref.reduce((m, r) => Math.max(m, r.id === c.id ? 0 : simOf(c, r)), 0);
+  const fresh = [];
+  SUBJ6.concat(["기타"]).forEach(k => {
+    const left = k === "기타" ? Math.max(0, S.settings.quotaCards - done.filter(isNewCardToday).length - fresh.length) : Math.max(0, PER_SUBJ - done.filter(c => grpOf(c) === k && isNewCardToday(c)).length);
     if (!left) return;
-    const mine = pool.filter(c => grpOf(c) === k);
-    const fresh = mine.filter(isNewCard), seen = mine.filter(c => !isNewCard(c));
-    // 복습: 복습할 날이 된 카드 먼저, 없으면 오래전에 본 카드
-    const rev = seen.slice().sort((a, b) => ((a.nextReview || "") <= t0 ? 0 : 1) - ((b.nextReview || "") <= t0 ? 0 : 1) || byNext(a, b));
-    // 새 카드: 최근에 본 것·이미 고른 것과 덜 비슷한 순서
-    const nov = fresh.map(c => ({ c, s: novelty(c, recent.concat(picked)) })).sort((a, b) => a.s - b.s || String(a.c.createdAt || "").localeCompare(String(b.c.createdAt || ""))).map(o => o.c);
-    let wantNew = kind === "review" ? 0 : MUST4.includes(k) ? 3 : 5;
-    let wantRev = left - wantNew;
-    if (kind !== "review" && MUST4.includes(k) && left < 5) { wantNew = Math.min(wantNew, Math.ceil(left / 2)); wantRev = left - wantNew; }
-    let a = nov.slice(0, Math.max(0, wantNew)), b = rev.slice(0, Math.max(0, wantRev));
-    if (a.length < wantNew) b = rev.slice(0, Math.max(0, left - a.length));                      // 새 카드가 모자라면 복습으로
-    if (b.length < wantRev && kind !== "review") a = nov.slice(0, Math.max(0, left - b.length));   // 복습이 모자라면 새 카드로
-    a.concat(b).slice(0, left).forEach(c => { c._kind = isNewCard(c) ? "new" : "rev"; picked.push(c); });
+    pool.filter(c => grpOf(c) === k && isNewCard(c)).map(c => ({ c, s: novelty(c, recent.concat(fresh)) }))
+      .sort((a, b) => a.s - b.s || String(a.c.createdAt || "").localeCompare(String(b.c.createdAt || ""))).slice(0, left).forEach(o => { o.c._kind = "new"; fresh.push(o.c); });
   });
-  // 6과목 카드가 모자라 30장이 안 되면 '기타' 과목 카드로 채운다 (새 카드 먼저)
-  const room = S.settings.quotaCards - done.length - picked.length;
-  if (room > 0) pool.filter(c => grpOf(c) === "기타" && !picked.includes(c)).sort((x, y) => (isNewCard(x) ? 0 : 1) - (isNewCard(y) ? 0 : 1) || byNext(x, y))
-    .filter(c => kind !== "review" || !isNewCard(c)).slice(0, room).forEach(c => { c._kind = isNewCard(c) ? "new" : "rev"; picked.push(c); });
-  // 비슷한 카드는 아래로: 오늘 이미 한 카드나 앞에 놓인 카드와 많이 겹치면 뒤로
-  const front = [], back = [];
-  const byGroup = {}; picked.forEach(c => (byGroup[grpOf(c)] = byGroup[grpOf(c)] || []).push(c));
-  const ORDER = SUBJ6.concat(["기타"]), mixed = []; for (let i = 0; ORDER.some(k => byGroup[k] && byGroup[k][i]); i++) ORDER.forEach(k => { if (byGroup[k] && byGroup[k][i]) mixed.push(byGroup[k][i]); });
+  const front = [], back = [], byGroup = {};
+  fresh.forEach(c => (byGroup[grpOf(c)] = byGroup[grpOf(c)] || []).push(c));
+  const ORDER = SUBJ6.concat(["기타"]), mixed = [];
+  for (let i = 0; ORDER.some(k => byGroup[k] && byGroup[k][i]); i++) ORDER.forEach(k => { if (byGroup[k] && byGroup[k][i]) mixed.push(byGroup[k][i]); });
   mixed.forEach(c => { const near = done.concat(front).some(r => simOf(c, r) >= SIM_LIMIT); c._similar = near; (near ? back : front).push(c); });
-  return front.concat(back);
+  // 복습 칸: 약한 카드 중 복습할 날이 된 것 (필수 4과목 먼저)
+  const rev = weak.filter(c => (c.nextReview || "") <= t0).sort((a, b) => (MUST4.includes(grpOf(a)) ? 0 : 1) - (MUST4.includes(grpOf(b)) ? 0 : 1) || byNext(a, b)).map(c => (c._kind = "rev", c._similar = false, c));
+  return front.concat(back, rev);
 }
+// 오늘 처음 본 카드(= 오늘 새 카드로 한 것)
+const isNewCardToday = c => { const h = asArr(c.history); return h.length && h[0].date === today(); };
 
 
 /* ============ Gemini ============ */
@@ -328,6 +332,7 @@ async function geminiCall(key, prompt, timeoutMs, temp) {
   finally { clearTimeout(t); }
 }
 /* 채점·복습이 부르는 함수: onWait(문구)로 「잠시 기다리는 중」을 화면에 보여 줄 수 있다 */
+const EXAMSTYLE = "\n출제 기준: 너는 국시원 물리치료사 국가시험 출제위원이다. 쉽게만 내지 말고, 3문제 중 1문제는 국시 방식(임상 사례: 나이·진단·증상을 1~3문장 주고 평가·중재·원인을 묻는 5지선다, 국시 말투)으로 낸다. 문제마다 진짜 매력적인 오답(바로 옆 개념, 숫자 하나 차이, 순서 바뀜, 흔한 오개념)을 1개 이상 넣고, 오답은 정답과 같은 범주에서 고른다. 'A - B'처럼 짝을 이어 쓴 보기와 '모두 옳다' 같은 보기는 쓰지 않는다. 보기 길이를 비슷하게 맞춘다. why에는 매력적인 오답이 왜 틀렸는지도 한 문장 쓴다.\n";
 const TERMS = "\n용어 규칙: 모든 문장·보기·해설은 대한의사협회 의학용어집 제6판·해부학용어 6판의 신용어만 쓴다. 구용어는 쓰지 않고 괄호로 같이 적지도 않는다. 예: 위팔뼈(상완골 X), 넙다리네갈래근(대퇴사두근 X), 굽힘·폄·벌림·모음(굴곡·신전·외전·내전 X), 안쪽·가쪽·몸쪽·먼쪽(내측·외측·근위·원위 X), 노신경·궁둥신경(요골신경·좌골신경 X), 무릎관절·엉덩관절(슬관절·고관절 X). 카드 내용이 구용어여도 신용어로 바꿔 쓴다.\n";
 async function gemini(prompt, timeoutMs = 45000, onWait, temp) {
   if (window.__fakeGemini) return window.__fakeGemini(prompt);
@@ -423,13 +428,16 @@ function render() {
 
 /* ============ 홈 ============ */
 function planList(list) {
-  const row = c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(grpOf(c)) + " · " + (c._kind === "new" ? "🆕 새 카드" : "🔁 복습" + (c.box ? " " + c.box + "단계" : "")) + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>';
-  const front = list.filter(c => !c._similar), back = list.filter(c => c._similar);
-  return '<ul class="list">' + front.map(row).join("") + "</ul>" +
-    (back.length ? '<h3 class="sub">↓ 앞 카드와 비슷해서 뒤로 보낸 카드 <span class="small muted">' + back.length + '장</span></h3><ul class="list">' + back.map(row).join("") + "</ul>" : "");
+  const row = c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(grpOf(c)) + " · " + (c._kind === "new" ? "🆕 새 카드" : (isMastered(c) ? "✅ 다 맞은 카드" : "⚠ 약한 카드") + (c.box ? " · " + c.box + "단계" : "")) + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>';
+  const fresh = list.filter(c => c._kind === "new" && !c._similar), sim = list.filter(c => c._kind === "new" && c._similar), rev = list.filter(c => c._kind === "rev");
+  let h = "";
+  if (fresh.length || sim.length) h += '<h3 class="sub">🆕 새 카드 <span class="small muted">' + (fresh.length + sim.length) + '장</span></h3><ul class="list">' + fresh.map(row).join("") + "</ul>" +
+    (sim.length ? '<p class="small muted" style="margin:6px 0 0">↓ 앞 카드와 비슷해서 뒤로 보낸 새 카드</p><ul class="list">' + sim.map(row).join("") + "</ul>" : "");
+  if (rev.length) h += '<h3 class="sub">🔁 복습 <span class="small muted">' + rev.length + "장 · " + (dayKind() === "review" ? "약한 카드 먼저, 그다음 다 맞은 카드" : "퀴즈를 틀렸거나 설명 80점 밑이었던 카드만") + '</span></h3><ul class="list">' + rev.map(row).join("") + "</ul>";
+  return h;
 }
 function viewHome() {
-  const t0 = today(), q = S.settings.quotaCards, x = dayOf(t0), pct = Math.min(100, Math.round(Math.min(x.cardsDone, q) / q * 100)), met = isMet(t0);
+  const t0 = today(), q = quotaFor(t0), x = dayOf(t0), pct = Math.min(100, Math.round(Math.min(x.cardsDone, q) / q * 100)), met = isMet(t0);
   const done = todayStudy(), doneIds = new Set(done.map(o => o.c.id)), before = plan();
   let h = "";
   if (!S.cards.length) h += '<div class="notice">카드가 아직 없어요. <b>설정 → 카드 가져오기</b>에서 Claude가 만든 카드 파일(JSON)을 넣어 주세요.</div>';
@@ -440,8 +448,8 @@ function viewHome() {
   const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
   if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
   h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">기말고사 퀘스트</a>(법규)에서 따로 해요.</p>';
-  const doneBy = k => done.filter(o => grpOf(o.c) === k).length;
-  h += '<section class="sheet"><h2>' + DAY_LABEL[dayKind(t0)] + '</h2><p class="small muted" style="margin:0">과목마다 5장씩 하루 30장 · 공중보건학·피부·전기치료·심폐는 매일 새 카드 + 복습</p><div class="row" style="gap:6px;flex-wrap:wrap">' + SUBJ6.map(k => '<span class="chip' + (doneBy(k) >= PER_SUBJ ? " ok" : " mute") + '">' + k + " " + Math.min(doneBy(k), PER_SUBJ) + "/" + PER_SUBJ + "</span>").join("") + "</div></section>";
+  const doneBy = k => done.filter(o => grpOf(o.c) === k && isNewCardToday(o.c)).length, revDone = done.filter(o => !isNewCardToday(o.c)).length;
+  h += '<section class="sheet"><h2>' + DAY_LABEL[dayKind(t0)] + '</h2><p class="small muted" style="margin:0">' + (dayKind(t0) === "review" ? "오늘은 새 카드 없이 복습만 많이 해요 (" + quotaFor(t0) + "장). 다 맞은 카드도 여기서 다시 봐요." : "새 카드를 먼저 과목마다 5장씩(30장). 퀴즈 다 맞고 설명 80점 이상인 카드는 토·일 복습 날에만 다시 나와요.") + '</p><div class="row" style="gap:6px;flex-wrap:wrap">' + (dayKind(t0) === "review" ? '<span class="chip">🔁 복습 ' + revDone + "/" + quotaFor(t0) + "</span>" : SUBJ6.map(k => '<span class="chip' + (doneBy(k) >= PER_SUBJ ? " ok" : " mute") + '">' + k + " " + Math.min(doneBy(k), PER_SUBJ) + "/" + PER_SUBJ + "</span>").join("") + '<span class="chip mute">🔁 복습 ' + revDone + "장</span>") + "</div></section>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
     (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + planList(before) : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
   const cut = (t, n) => { t = String(t || ""); return t.length > n ? t.slice(0, n) + "…" : t; };
@@ -557,7 +565,7 @@ async function reviewStart() {
   const pool = reviewPool().slice(0, 8); if (!pool.length) return;
   rev = { items: [], i: 0, right: 0, busy: true, err: "", done: false }; render(); window.scrollTo(0, 0);
   const data = pool.map(({ c, r }) => ({ topic: c.topic, subject: c.subject, concept: String(c.concept || "").slice(0, 900), wrongQuestions: asArr(r.wrongQs).map(w => ({ q: w.q, studentPicked: w.mine, correct: w.right, why: w.why })), missedInExplanation: asArr(r.missed), wronglySaid: asArr(r.wrongSaid) }));
-  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장." + TERMS + "틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
+  const prompt = "학생이 틀린 것만으로 한국 물리치료사 국가시험 복습 세션을 만든다. 한국어로. 카드마다 summary = 학생이 틀린 문제·빠뜨린 내용·틀리게 말한 것만 바로잡는 2~3줄 요약(맞힌 내용은 넣지 않는다, 숫자·용어 정확히). q = 그 틀린 부분을 다시 묻는 새 국시형 5지선다 1문제(원래 문제와 다른 표현), choices 5개, answer 0부터, why = 정답 근거와 학생이 헷갈린 함정 1~2문장." + EXAMSTYLE + TERMS + "틀린 것(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만(카드 순서대로): [{"topic":"","summary":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
   try { const arr = await gemini(prompt, 60000, m => { rev.busyMsg = m; render(); }); rev.items = asArr(arr).filter(x => x && x.q && Array.isArray(x.choices) && x.choices.length >= 4).map(x => ({ topic: String(x.topic || ""), summary: String(x.summary || ""), q: String(x.q), choices: x.choices.map(String), answer: Math.max(0, Math.min(x.choices.length - 1, x.answer | 0)), why: String(x.why || ""), pick: null })); }
   catch (e) { rev.err = gErr(e) + " 원래 카드 문제로 복습할게요."; }
   if (!rev.items.length) rev.items = pool.map(({ c, r }) => { const w = asArr(r.wrongQs)[0]; const q = w ? asArr(c.quiz).concat(asArr(c.quiz0)).find(x => x.q === w.q) : asArr(c.quiz)[0]; return q ? { topic: c.topic, summary: [].concat(asArr(r.wrongQs).map(x => "✗ " + x.q + " → " + x.right), asArr(r.missed).map(m => "❗ " + m.point)).join("\n"), q: q.q, choices: asArr(q.choices), answer: q.answer | 0, why: q.why || "", pick: null } : null; }).filter(Boolean);
@@ -624,7 +632,7 @@ async function drillStart() {
     const data = grp.map(c => ({ subject: c.subject, topic: c.topic, concept: String(c.concept || "").slice(0, 1200), keyPoints: asArr(c.keyPoints) }));
     const prompt = "학생이 오늘 공부한 카드들이다. 이 내용으로 한국 물리치료사 국가시험형 5지선다 " + (want + 2) + "문제를 새로 만든다. 한국어로.\n" +
       "가장 중요한 규칙: alreadyAsked에 있는 문제와 같은 문제를 절대 내지 않는다. 문장만 바꾼 문제, 같은 것을 묻고 정답이 같은 문제, 보기만 섞은 문제도 같은 문제로 본다. 학생이 외워서 풀 수 없게, 같은 개념이라도 다른 점을 묻는다: 정의 ↔ 예시 바꾸기, 숫자·기준, 짝짓기, 임상 사례(환자 상황 제시), 옳지 않은 것 고르기, 두 개념 비교, 원인 ↔ 결과 뒤집기. 정답도 alreadyAsked와 다른 보기가 되게 한다.\n" +
-      "카드마다 고르게 나눈다. 숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS +
+      "카드마다 고르게 나눈다. 숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + EXAMSTYLE + TERMS +
       "alreadyAsked(내면 안 되는 문제):\n- " + asked.slice(0, 80).join("\n- ") + "\n\n오늘 카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"topic":"","q":"","choices":["","","","",""],"answer":0,"why":""}]';
     drill.busyMsg = "새 문제 만드는 중… (" + (gi + 1) + " / " + groups.length + " 묶음, 지금 " + drill.items.length + "문제)"; render();
     try {
@@ -674,7 +682,7 @@ async function freshQuiz(card, onWait) {
   const asked = cardAsked(card).map(o => o.q);
   const prompt = "학생이 복습하는 카드다. 이 카드 내용으로 한국 물리치료사 국가시험형 5지선다 " + (n + 3) + "문제를 새로 만든다. 한국어로.\n" +
     "가장 중요한 규칙: alreadyAsked에 있는 문제와 같은 문제를 절대 내지 않는다. 문장만 바꾼 문제, 같은 것을 묻고 정답이 같은 문제, 보기만 섞은 문제도 같은 문제로 본다. 외워서 풀 수 없게 같은 개념의 다른 점을 묻는다: 정의 ↔ 예시, 숫자·기준, 짝짓기, 임상 사례(환자 상황 제시), 옳지 않은 것 고르기, 두 개념 비교, 원인 ↔ 결과. 정답도 alreadyAsked와 다른 보기가 되게 한다.\n" +
-    "숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + TERMS +
+    "숫자·용어는 concept·keyPoints에 근거해 정확히, 지어내지 않는다. choices 5개, answer 0부터, why = 정답 근거와 오답 함정 1~2문장." + EXAMSTYLE + TERMS +
     "alreadyAsked(내면 안 되는 문제):\n- " + asked.slice(-60).join("\n- ") + "\n\n카드(JSON):\n" + JSON.stringify(data) + '\nJSON 배열만: [{"q":"","choices":["","","","",""],"answer":0,"why":""}]';
   const arr = await gemini(prompt, 60000, onWait, 0.9), out = [];
   asArr(arr).forEach(x => {
@@ -722,7 +730,7 @@ function viewSettings() {
     '<div class="row"><button class="btn primary" data-act="saveKey">저장</button><button class="btn" data-act="testKey">연결 시험</button><button class="btn" data-act="models">모델 목록 불러오기</button>' + (GEMINI_API_KEYS().length ? '<button class="btn ghost" data-act="clearKey">키 모두 지우기</button>' : "") + '</div><p class="small muted" id="keyMsg" style="margin:0"></p></section>' +
     '<section class="sheet"><h2>📥 카드 가져오기</h2><p class="small muted" style="margin:0">Claude가 볼트 <code>3. 수업/국시 퀘스트 앱/카드 내보내기/</code>에 만든 JSON 파일을 고르세요. 같은 카드는 내용만 바뀌고 공부 기록은 그대로예요.</p><input type="file" id="cardFile" accept=".json,application/json"><textarea id="cardPaste" style="min-height:90px;font-family:var(--mono);font-size:12px" placeholder="또는 붙여 넣기로 가져오기: Gemini가 준 {&quot;cards&quot;:[ … ]} 를 여기에 붙여 넣기"></textarea><div class="row"><button class="btn primary" data-act="importCards">가져오기</button></div><p class="small muted" id="impMsg" style="margin:0"></p></section>' +
     '<section class="sheet"><h2>🔊 읽어 주기</h2><p class="small muted" style="margin:0">설명 채점 결과를 소리로 읽어 줄지 정해요. 틀리거나 빠뜨린 부분만 읽어요.</p><div class="row">' + voiceBtn() + '</div></section>' +
-    '<section class="sheet"><h2>⚙️ 하루 할당량</h2><label class="f">하루 카드 수<input type="number" id="quota" min="1" max="60" value="' + S.settings.quotaCards + '"></label><div class="row"><button class="btn" data-act="saveQuota">저장</button><button class="btn ghost" data-act="exportAll">기록 내보내기(JSON)</button></div></section>';
+    '<section class="sheet"><h2>⚙️ 하루 할당량</h2><label class="f">하루 카드 수<input type="number" id="quota" min="1" max="60" value="' + S.settings.quotaCards + '"></label><label class="f">복습 날(토·일) 카드 수<input type="number" id="rquota" min="10" max="200" value="' + (S.settings.reviewQuota || 60) + '"></label><div class="row"><button class="btn" data-act="saveQuota">저장</button><button class="btn ghost" data-act="exportAll">기록 내보내기(JSON)</button></div></section>';
 }
 async function importCards() {
   const f = ($("#cardFile") || {}).files && $("#cardFile").files[0], msg = $("#impMsg"), pasted = (($("#cardPaste") || {}).value || "").trim();
@@ -786,7 +794,7 @@ document.addEventListener("click", async e => {
   if (a === "testKey") { addKeys(($("#gkey") || {}).value); const ks = GEMINI_API_KEYS(); if (!ks.length) { $("#keyMsg").textContent = gErr({ code: "nokey" }); return; } $("#keyMsg").textContent = "시험 중…"; const out = []; for (let i = 0; i < ks.length; i++) { try { const r = await geminiCall(ks[i], 'JSON만: {"ok":true}', 20000); out.push((i + 1) + "번 " + (r && r.ok ? "✅" : "⚠ 모양 다름")); delete keyCool[ks[i]]; } catch (x) { out.push((i + 1) + "번 " + ({ rate: "⏳ 사용량 참", key: "❌ 틀린 키", model: "❌ 모델 이름", busy: "⏳ 서버 붐빔" }[x && x.code] || "❌ " + ((x && (x.msg || x.code)) || "오류"))); } } $("#keyMsg").textContent = out.join(" · ") + " (" + cfg.model + ")"; refreshEnv(); return; }
   if (a === "models") { addKeys(($("#gkey") || {}).value); try { const ms = await listModels(); const flash = ms.filter(m => /flash/.test(m) && !/image|tts|audio|live|embedding/.test(m)); const sel = $("#gmodel"); sel.innerHTML = (flash.length ? flash : ms).map(m => "<option" + (m === cfg.model ? " selected" : "") + ">" + esc(m) + "</option>").join(""); $("#keyMsg").textContent = "모델 " + (flash.length || ms.length) + "개 — 고른 뒤 「저장」을 누르세요."; } catch (x) { $("#keyMsg").textContent = gErr(x); } return; }
   if (a === "importCards") return importCards();
-  if (a === "saveQuota") { S.settings.quotaCards = Math.max(1, Math.min(60, parseInt($("#quota").value, 10) || 15)); cloudPut("user", "", { settings: S.settings }); renderHeader(); return render(); }
+  if (a === "saveQuota") { S.settings.quotaCards = Math.max(1, Math.min(60, parseInt($("#quota").value, 10) || 15)); S.settings.reviewQuota = Math.max(10, Math.min(200, parseInt(($("#rquota") || {}).value, 10) || 60)); cloudPut("user", "", { settings: S.settings }); renderHeader(); return render(); }
   if (a === "exportAll") { const blob = new Blob([JSON.stringify({ exported: today(), cards: S.cards, days: S.days }, null, 1)], { type: "application/json" }); const u = URL.createObjectURL(blob); const l = document.createElement("a"); l.href = u; l.download = "국시퀘스트_기록_" + today() + ".json"; l.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); return; }
 });
 
