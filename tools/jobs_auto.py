@@ -8,7 +8,7 @@
 - 한 사이트가 막혀도 다른 사이트 결과와 전 목록은 그대로 저장한다.
 사용: python3 tools/jobs_auto.py  (저장소 맨 위에서)
 """
-import datetime, html, http.cookiejar, json, os, re, sys, time, urllib.parse, urllib.request
+import datetime, html, http.cookiejar, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "cal", "jobs.json")
@@ -75,9 +75,11 @@ def kind_of(name, cat=""):
 # ---------- 굿잡피티 ----------
 def goodjob(opener):
     items, rows_seen = [], 0
-    for page in (1, 2, 3):
+    for page in range(1, 11):   # 목록에는 모집 중인 공고만 나온다 → 끝까지 읽어 '열린 공고 번호'를 모은다
         s = fetch(opener, "https://www.goodjobpt.com/bbs/board.php?bo_table=job&page=%d" % page)
-        rows_seen += len(re.findall(r"wr_id=\d+", s))
+        ids = re.findall(r"wr_id=(\d+)", s)
+        rows_seen += len(ids); GJ_OPEN.update(ids)
+        if not ids: break
         for row in re.findall(r"<tr[^>]*>(.*?)</tr>", s, re.S):
             m = re.search(r"wr_id=(\d+)", row)
             if not m: continue
@@ -152,6 +154,57 @@ def medijob(opener):
     return dedupe(items)
 
 
+GJ_OPEN = set()   # 굿잡피티 목록에 지금 보이는 공고 번호 (= 모집 중)
+
+
+def still_open(opener, x, gj_ok):
+    """마감 확인. True = 모집 중(또는 확인 못 함), False = 마감·삭제 확인됨."""
+    url = str(x.get("url", ""))
+    m = re.search(r"goodjobpt\.com.*wr_id=(\d+)", url)
+    if m:
+        return (not gj_ok) or m.group(1) in GJ_OPEN          # 목록에서 사라졌으면 마감
+    if "medijob.cc" in url and "recruitSeqno=" in url:
+        try:
+            s = fetch(opener, url, tries=1)
+        except urllib.error.HTTPError as e:
+            return e.code not in (404, 410)                   # 지워진 공고
+        except Exception:  # noqa: BLE001
+            return True                                       # 인터넷 문제 → 그대로 둠
+        time.sleep(0.6)
+        if "마감된 공고입니다" in s: return False
+        if "접수기간" not in s and "상세요강" not in s: return False   # 공고 내용이 없음(삭제)
+        return True
+    if "saramin.co.kr" in url:
+        return saramin_open(opener, x)
+    return True   # 그 밖: 자동 확인 불가 → 마감일까지 유지
+
+
+def saramin_open(opener, x):
+    """사람인: '병원이름 물리치료'로 검색해 그 병원 물리치료사 공고가 보이면 모집 중."""
+    name = str(x.get("hospital", "")).split(" (")[0]
+    key = next((w for w in name.split() if "병원" in w), name.split()[-1] if name.split() else name)
+    try:
+        q = urllib.parse.urlencode({"searchword": key + " 물리치료"})
+        s = fetch(opener, "https://www.saramin.co.kr/zf_user/search/recruit?" + q,
+                  headers={"Accept": "text/html,application/xhtml+xml", "Accept-Language": "ko-KR,ko;q=0.9"}, tries=1)
+    except Exception:  # noqa: BLE001
+        return True
+    if len(s) < 50000:
+        return True   # 페이지를 제대로 못 받음 → 그대로 둠
+    time.sleep(1)
+    k = re.sub(r"\s", "", key)
+    for b in re.split(r'<div class="item_recruit"', s)[1:]:
+        corp = clean((re.search(r'class="corp_name">(.*?)</strong>', b, re.S) or [None, ""])[1])
+        tit = clean((re.search(r'class="job_tit">(.*?)</h2>', b, re.S) or [None, ""])[1])
+        if k in re.sub(r"\s", "", corp + tit) and "물리치료" in tit:
+            dm = re.search(r"~\s*(\d{2})/(\d{2})", clean((re.search(r'class="job_date">(.*?)</div>', b, re.S) or [None, ""])[1]))
+            if dm:   # 마감일 갱신
+                y = TODAY.year + (1 if int(dm.group(1)) < TODAY.month - 6 else 0)
+                x["deadline"] = "%d-%s-%s" % (y, dm.group(1), dm.group(2))
+            return True
+    return False
+
+
 def dedupe(items):
     seen, out = set(), []
     for x in items:
@@ -218,6 +271,14 @@ def main():
         x["first"] = first_seen.get(x["url"], today)
         x["isNew"] = (TODAY - datetime.date.fromisoformat(x["first"])).days <= 1
         x.pop("_key", None); x.pop("_name", None)
+
+    # 매일 마감 확인: 모집 끝난 공고는 뺀다 (사용자 2026-11-23)
+    gj_ok = "굿잡피티" in ok_sources and bool(GJ_OPEN)
+    closed = [x for x in merged if not still_open(opener, x, gj_ok)]
+    if closed:
+        names = {id(x) for x in closed}
+        merged = [x for x in merged if id(x) not in names]
+        notes.append("마감 확인으로 뺌 %d건(%s)" % (len(closed), ", ".join(c["hospital"].split(" (")[0] for c in closed[:6])))
 
     def sort_key(x):
         dl = x.get("deadline", "")
