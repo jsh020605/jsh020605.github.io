@@ -1,22 +1,9 @@
 {
- "at": "11/21 18:00",
- "date": "2026-11-21",
- "summary": "총 43건(신규 2). 사이트별 굿잡피티 8·메디잡 32·사람인 4 (자동 수집 11/21 18:00, 굿잡피티 8, 메디잡 0). 오늘·내일 마감: 강북삼성병원.",
+ "at": "11/23 14:26",
+ "date": "2026-11-23",
+ "summary": "총 44건(신규 2). 사이트별 메디잡 34·굿잡피티 7·사람인 4 (자동 수집 11/23 14:26, 굿잡피티 5, 메디잡 2).",
  "checked": "자동 수집 (매일)",
  "items": [
-  {
-   "hospital": "강북삼성병원 (서초지역 부속의원 물리치료사 모집)",
-   "region": "서울",
-   "type": "계약직",
-   "career": "경력",
-   "pay": "",
-   "deadline": "2026-11-22",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6341",
-   "source": "굿잡피티",
-   "kind": "대학병원",
-   "first": "2026-11-19",
-   "isNew": false
-  },
   {
    "hospital": "광혜병원 (신입가능)",
    "region": "서울 강남구",
@@ -119,7 +106,7 @@
    "source": "메디잡",
    "kind": "병원(종류 확인 중)",
    "first": "2026-11-21",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "강동삼성재활의학과병원",
@@ -224,6 +211,19 @@
    "isNew": false,
    "kind": "정형·척추 전문병원",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "강북21세기병원 (강북 21세기 병원 물리치료 (11월 2…)",
+   "region": "서울 중랑구",
+   "type": "파트타임(시간제)",
+   "career": "경력무관",
+   "pay": "물리치료사 일급: 120,000 원",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3781676",
+   "source": "메디잡",
+   "kind": "병원(종류 확인 중)",
+   "first": "2026-11-23",
+   "isNew": true
   },
   {
    "hospital": "강북으뜸병원 (루틴, 육아휴직 대체)",
@@ -460,6 +460,19 @@
    "isNew": false
   },
   {
+   "hospital": "원탑병원 (원탑병원에서 물리치료실 선생님 채용 합니…)",
+   "region": "서울 강서구",
+   "type": "정규직",
+   "career": "경력무관",
+   "pay": "물리치료사 연봉: 3,000 ~ 3,500 만원",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3781670",
+   "source": "메디잡",
+   "kind": "병원(종류 확인 중)",
+   "first": "2026-11-23",
+   "isNew": true
+  },
+  {
    "hospital": "인본병원 (매주 토요일 알바)",
    "region": "부천시",
    "type": "병원",
@@ -561,7 +574,7 @@
    "source": "메디잡",
    "kind": "병원(종류 확인 중)",
    "first": "2026-11-20",
-   "isNew": true
+   "isNew": false
   }
  ]
 }
