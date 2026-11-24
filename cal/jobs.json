@@ -1,7 +1,7 @@
 {
- "at": "11/24 11:11",
- "date": "2026-11-24",
- "summary": "총 38건(신규 5). 사이트별 메디잡 31·굿잡피티 6·사람인 2 (자동 수집 11/24 11:11, 굿잡피티 6, 메디잡 2).",
+ "at": "11/25 07:05",
+ "date": "2026-11-25",
+ "summary": "총 41건(신규 8). 사이트별 메디잡 33·굿잡피티 7·사람인 2 (자동 수집 11/25 07:05, 굿잡피티 6, 메디잡 4, 마감 확인으로 뺌 1건(아너스힐병원 김포)).",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -16,6 +16,19 @@
    "isNew": false,
    "kind": "정형·척추 전문병원",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "삼성서울병원 (재활의학과 계약직 사무직(사원) 채용)",
+   "region": "서울",
+   "type": "계약직",
+   "career": "경력무관",
+   "pay": "",
+   "deadline": "2026-11-30",
+   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6359",
+   "source": "굿잡피티",
+   "kind": "종합병원",
+   "first": "2026-11-25",
+   "isNew": true
   },
   {
    "hospital": "서울바른척도병원(인천) (인천 서울바른척도병원 물리치료사 구인)",
@@ -68,19 +81,6 @@
    "kind": "어린이재활병원",
    "first": "2026-11-19",
    "isNew": false
-  },
-  {
-   "hospital": "아너스힐병원 김포 (육아휴직 대체)",
-   "region": "김포시",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "대체인력, 연봉 3,000만원",
-   "deadline": "2026-12-02",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3763782",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "병원",
-   "first": "2026-11-17"
   },
   {
    "hospital": "푸르메재단 넥슨어린이재활병원",
@@ -213,6 +213,32 @@
    "isNew": true
   },
   {
+   "hospital": "스마튼병원 (부천 스마튼병원 물리치료실 토요일 루틴…)",
+   "region": "부천시",
+   "type": "병원",
+   "career": "경력무관",
+   "pay": "물리치료사 일급: 70,000 원",
+   "deadline": "2026-12-24",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782970",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-25",
+   "isNew": true
+  },
+  {
+   "hospital": "아너스힐병원 (아너스힐병원 김포에서 물리치료사(육아휴직…)",
+   "region": "김포시",
+   "type": "계약직,임시직",
+   "career": "경력무관",
+   "pay": "물리치료사 연봉: 3,000 ~ 3,000 만원",
+   "deadline": "2026-12-24",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782937",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-25",
+   "isNew": true
+  },
+  {
    "hospital": "(의)장산의료재단 이춘택병원 (육아휴직 대체)",
    "region": "수원시 팔달구",
    "type": "병원",
@@ -330,6 +356,19 @@
    "first": "2026-11-17"
   },
   {
+   "hospital": "마디세상병원 ((12/5토)마디세상병원 루틴물리치료사…)",
+   "region": "서울 중랑구",
+   "type": "병원",
+   "career": "경력 2년",
+   "pay": "물리치료사 일급: 80,000 원",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782900",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-25",
+   "isNew": true
+  },
+  {
    "hospital": "박진영병원 (물리치료실)",
    "region": "안산시 단원구",
    "type": "병원",
@@ -356,17 +395,17 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "수병원 (도수치료사)",
-   "region": "수원시 팔달구",
-   "type": "병원",
+   "hospital": "수병원 (수병원 도수치료사 모집 (사원 ~ 실장급…)",
+   "region": "수원시",
+   "type": "정규직",
    "career": "경력무관",
-   "pay": "내규",
+   "pay": "",
    "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3777002",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782838",
    "source": "메디잡",
-   "isNew": false,
    "kind": "병원",
-   "first": "2026-11-17"
+   "first": "2026-11-25",
+   "isNew": true
   },
   {
    "hospital": "신도림 아름제일병원",
@@ -418,7 +457,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-23",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "원탑병원 (원탑병원에서 물리치료실 선생님 채용 합니…)",
@@ -431,7 +470,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-23",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "인본병원 (매주 토요일 알바)",
