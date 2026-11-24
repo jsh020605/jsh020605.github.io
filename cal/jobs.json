@@ -1,7 +1,7 @@
 {
- "at": "11/24 07:00",
+ "at": "11/24 11:11",
  "date": "2026-11-24",
- "summary": "총 35건(신규 2). 사이트별 메디잡 29·굿잡피티 5·사람인 2 (자동 수집 11/24 07:00, 굿잡피티 5, 메디잡 1, 마감 확인으로 뺌 1건(주안퍼스트병원)).",
+ "summary": "총 38건(신규 5). 사이트별 메디잡 31·굿잡피티 6·사람인 2 (자동 수집 11/24 11:11, 굿잡피티 6, 메디잡 2).",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -26,12 +26,12 @@
    "deadline": "2026-11-30",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3779244",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-19",
    "isNew": false
   },
   {
-   "hospital": "서울아산병원 (.gj-interest-heart-slo…)",
+   "hospital": "서울아산병원 (재활의학과 연구원(물리치료사) 모집)",
    "region": "서울",
    "type": "계약직",
    "career": "경력",
@@ -79,7 +79,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3763782",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -104,9 +104,22 @@
    "deadline": "2026-12-04",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3780308",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "종합병원",
    "first": "2026-11-21",
    "isNew": false
+  },
+  {
+   "hospital": "연세마두병원 (일산 연세마두병원 운동치료실 알바 구인)",
+   "region": "고양시 일산동구",
+   "type": "정규직",
+   "career": "경력 1년",
+   "pay": "물리치료사 일급: 160,000 원",
+   "deadline": "2026-12-05",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782538",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-24",
+   "isNew": true
   },
   {
    "hospital": "강동삼성재활의학과병원",
@@ -157,7 +170,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3746472",
    "source": "메디잡",
    "isNew": false,
-   "kind": "종합병원",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -170,8 +183,34 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3776608",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "인천 효성병원 (NDT 아르바이트 구인공고)",
+   "region": "인천",
+   "type": "계약직 · 알바",
+   "career": "경력무관",
+   "pay": "",
+   "deadline": "2026-12-18",
+   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6351",
+   "source": "굿잡피티",
+   "kind": "정형·척추 전문병원",
+   "first": "2026-11-24",
+   "isNew": true
+  },
+  {
+   "hospital": "서울이왕병원 (이왕병원 함께 일하실 주말(토요일 오전만…)",
+   "region": "인천 미추홀구",
+   "type": "병원",
+   "career": "경력무관",
+   "pay": "",
+   "deadline": "2026-12-24",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3782616",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-24",
+   "isNew": true
   },
   {
    "hospital": "(의)장산의료재단 이춘택병원 (육아휴직 대체)",
@@ -209,7 +248,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3763184",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -222,7 +261,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3774238",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -234,7 +273,7 @@
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3779208",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-19",
    "isNew": false
   },
@@ -287,7 +326,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3752448",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -300,7 +339,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3772112",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -326,7 +365,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3777002",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -377,7 +416,7 @@
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3781854",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-23",
    "isNew": true
   },
@@ -390,7 +429,7 @@
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3781670",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-23",
    "isNew": true
   },
@@ -430,7 +469,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3705798",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -443,7 +482,7 @@
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3762918",
    "source": "메디잡",
    "isNew": false,
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-17"
   },
   {
@@ -455,7 +494,7 @@
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3780180",
    "source": "메디잡",
-   "kind": "병원(종류 확인 중)",
+   "kind": "병원",
    "first": "2026-11-20",
    "isNew": false
   }
