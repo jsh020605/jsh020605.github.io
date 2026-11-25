@@ -1,7 +1,7 @@
 {
- "at": "11/25 18:00",
- "date": "2026-11-25",
- "summary": "총 40건(신규 11). 사이트별 메디잡 31·굿잡피티 8·사람인 2 (자동 수집 11/25 18:00, 굿잡피티 8, 메디잡 2, 마감 확인으로 뺌 4건(건주병원, 김포다조은병원, 대찬병원, 흥K병원)).",
+ "at": "11/26 07:12",
+ "date": "2026-11-26",
+ "summary": "총 37건(신규 9). 사이트별 메디잡 31·굿잡피티 5·사람인 2 (자동 수집 11/26 07:12, 굿잡피티 5, 메디잡 3, 마감 확인으로 뺌 3건(서울아산병원, 아인병원, 인천세종병원)).",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -44,19 +44,6 @@
    "isNew": false
   },
   {
-   "hospital": "서울아산병원 (재활의학과 연구원(물리치료사) 모집)",
-   "region": "서울",
-   "type": "계약직",
-   "career": "경력",
-   "pay": "",
-   "deadline": "2026-11-30",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6289",
-   "source": "굿잡피티",
-   "kind": "대학병원",
-   "first": "2026-11-19",
-   "isNew": false
-  },
-  {
    "hospital": "하병원 (휴일고정 알바)",
    "region": "서울 강남구",
    "type": "병원",
@@ -70,7 +57,7 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "넥슨어린이재활병원 (물리치료사(계약직 2명) 채용 공고)",
+   "hospital": "넥슨어린이재활병원 (.gj-interest-heart-slo…)",
    "region": "서울",
    "type": "계약직",
    "career": "경력무관",
@@ -96,7 +83,7 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "에이치플러스자립병원 (.gj-interest-heart-slo…)",
+   "hospital": "에이치플러스자립병원 ((회복기재활) 서울효천의료재단 에이치플러…)",
    "region": "서울",
    "type": "정규직",
    "career": "경력",
@@ -132,7 +119,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-24",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "강동삼성재활의학과병원",
@@ -210,7 +197,7 @@
    "source": "굿잡피티",
    "kind": "정형·척추 전문병원",
    "first": "2026-11-24",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "서울이왕병원 (이왕병원 함께 일하실 주말(토요일 오전만…)",
@@ -223,7 +210,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-24",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "스마튼병원 (부천 스마튼병원 물리치료실 토요일 루틴…)",
@@ -356,17 +343,17 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "본바움병원 (도수)",
+   "hospital": "본바움병원 (은평 본바움병원에서 물리치료 선생님 구인…)",
    "region": "서울 은평구",
-   "type": "병원",
+   "type": "정규직",
    "career": "경력무관",
-   "pay": "내규",
+   "pay": "",
    "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3769151",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3783956",
    "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
+   "kind": "병원",
+   "first": "2026-11-26",
+   "isNew": true
   },
   {
    "hospital": "수병원 (수병원 도수치료사 모집 (사원 ~ 실장급…)",
@@ -406,19 +393,6 @@
    "isNew": false,
    "kind": "재활병원",
    "first": "2026-11-17"
-  },
-  {
-   "hospital": "아인병원 (재활치료팀 물리치료사 채용(육아휴직 대체…)",
-   "region": "인천",
-   "type": "계약직",
-   "career": "경력무관",
-   "pay": "",
-   "deadline": "채용시마감",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6345",
-   "source": "굿잡피티",
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-19",
-   "isNew": false
   },
   {
    "hospital": "안산튼튼병원 (안산튼튼병원 물리치료사 채용 (도수치료))",
@@ -471,19 +445,6 @@
    "isNew": false,
    "kind": "정형·척추 전문병원",
    "first": "2026-11-17"
-  },
-  {
-   "hospital": "인천세종병원 (물리치료팀 물리치료사 채용(계약직))",
-   "region": "인천",
-   "type": "계약직",
-   "career": "경력무관",
-   "pay": "",
-   "deadline": "채용시마감",
-   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6346",
-   "source": "굿잡피티",
-   "kind": "종합병원",
-   "first": "2026-11-19",
-   "isNew": false
   },
   {
    "hospital": "제일정형외과병원 (물리치료사 아르바이트 채용 공고(토요일…)",
