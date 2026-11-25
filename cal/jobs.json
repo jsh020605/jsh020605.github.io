@@ -1,7 +1,7 @@
 {
- "at": "11/25 07:05",
+ "at": "11/25 18:00",
  "date": "2026-11-25",
- "summary": "총 41건(신규 8). 사이트별 메디잡 33·굿잡피티 7·사람인 2 (자동 수집 11/25 07:05, 굿잡피티 6, 메디잡 4, 마감 확인으로 뺌 1건(아너스힐병원 김포)).",
+ "summary": "총 40건(신규 11). 사이트별 메디잡 31·굿잡피티 8·사람인 2 (자동 수집 11/25 18:00, 굿잡피티 8, 메디잡 2, 마감 확인으로 뺌 4건(건주병원, 김포다조은병원, 대찬병원, 흥K병원)).",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -94,6 +94,19 @@
    "isNew": false,
    "kind": "어린이재활병원",
    "first": "2026-11-17"
+  },
+  {
+   "hospital": "에이치플러스자립병원 (.gj-interest-heart-slo…)",
+   "region": "서울",
+   "type": "정규직",
+   "career": "경력",
+   "pay": "",
+   "deadline": "2026-12-03",
+   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6369",
+   "source": "굿잡피티",
+   "kind": "재활병원",
+   "first": "2026-11-25",
+   "isNew": true
   },
   {
    "hospital": "원진재단부설 녹색병원 (녹색병원(서울) 물리치료사 모집공고 (정…)",
@@ -278,32 +291,6 @@
    "first": "2026-11-17"
   },
   {
-   "hospital": "건주병원 (재활센터 일반물리치료)",
-   "region": "부천시",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "주5일, 내규",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3774238",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "김포다조은병원 (김포다조은병원 물리치료사 선생님 모십니다…)",
-   "region": "김포시",
-   "type": "정규직",
-   "career": "경력무관",
-   "pay": "물리치료사 연봉: 3,200 ~ 4,200 만원",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3779208",
-   "source": "메디잡",
-   "kind": "병원",
-   "first": "2026-11-19",
-   "isNew": false
-  },
-  {
    "hospital": "나누리인천주안병원 (평일 알바)",
    "region": "인천 미추홀구",
    "type": "병원",
@@ -311,19 +298,6 @@
    "pay": "아르바이트, 내규",
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3774313",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "대찬병원 (통증치료 파트타임)",
-   "region": "인천 남동구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "파트타임",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3744773",
    "source": "메디잡",
    "isNew": false,
    "kind": "정형·척추 전문병원",
@@ -473,6 +447,19 @@
    "isNew": false
   },
   {
+   "hospital": "의료법인 지암의료재단 퍼스트병원 (인천/도원역 퍼스트병원에서 물리치료사 써…)",
+   "region": "인천 중구",
+   "type": "계약직,임시직",
+   "career": "경력무관",
+   "pay": "물리치료사 일급: 160,000 원",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3783838",
+   "source": "메디잡",
+   "kind": "병원",
+   "first": "2026-11-25",
+   "isNew": true
+  },
+  {
    "hospital": "인본병원 (매주 토요일 알바)",
    "region": "부천시",
    "type": "병원",
@@ -499,6 +486,19 @@
    "isNew": false
   },
   {
+   "hospital": "제일정형외과병원 (물리치료사 아르바이트 채용 공고(토요일…)",
+   "region": "서울 강남구",
+   "type": "파트타임(시간제)",
+   "career": "경력무관",
+   "pay": "물리치료사 일급: 60,000 원",
+   "deadline": "채용시마감",
+   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3783877",
+   "source": "메디잡",
+   "kind": "정형·척추 전문병원",
+   "first": "2026-11-25",
+   "isNew": true
+  },
+  {
    "hospital": "코리아병원 (신규졸업생)",
    "region": "서울 동대문구",
    "type": "병원",
@@ -523,19 +523,6 @@
    "isNew": false,
    "kind": "병원",
    "first": "2026-11-17"
-  },
-  {
-   "hospital": "흥K병원 (시흥 능곡 흥K병원에서 계약직(5개월)…)",
-   "region": "시흥시",
-   "type": "계약직",
-   "career": "경력무관",
-   "pay": "",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3780180",
-   "source": "메디잡",
-   "kind": "병원",
-   "first": "2026-11-20",
-   "isNew": false
   }
  ]
 }
