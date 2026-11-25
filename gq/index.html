@@ -258,6 +258,7 @@ function plan() {
   const t0 = today(), kind = dayKind(t0), wk = addDays(t0, -7);
   const done = todayStudy().map(o => o.c), doneIds = new Set(done.map(c => c.id));
   const pool = S.cards.filter(c => !isLaw(c) && !doneIds.has(c.id));
+  pool.forEach(c => { c._mixed = false; c._similar = false; });
   const oldestFirst = (a, b) => String((lastRec(a) || {}).date || "").localeCompare(String((lastRec(b) || {}).date || ""));
   const weak = pool.filter(c => !isNewCard(c) && !isMastered(c));
   if (kind === "review") {
@@ -270,20 +271,24 @@ function plan() {
   // 새 카드 날: 과목마다 새 카드 5장 (최근 카드·이미 고른 카드와 덜 비슷한 순서)
   const recent = S.cards.filter(c => (c.history || []).some(h => h.date >= wk));
   const novelty = (c, ref) => ref.reduce((m, r) => Math.max(m, r.id === c.id ? 0 : simOf(c, r)), 0);
-  const fresh = [];
+  const fresh = [], filled = new Set();
+  const weakOrder = (a, b) => ((a.nextReview || "") <= t0 ? 0 : 1) - ((b.nextReview || "") <= t0 ? 0 : 1) || byNext(a, b);
   SUBJ6.concat(["기타"]).forEach(k => {
-    const left = k === "기타" ? Math.max(0, S.settings.quotaCards - done.filter(isNewCardToday).length - fresh.length) : Math.max(0, PER_SUBJ - done.filter(c => grpOf(c) === k && isNewCardToday(c)).length);
+    const left = k === "기타" ? Math.max(0, S.settings.quotaCards - done.length - fresh.length) : Math.max(0, PER_SUBJ - done.filter(c => grpOf(c) === k).length);
     if (!left) return;
-    pool.filter(c => grpOf(c) === k && isNewCard(c)).map(c => ({ c, s: novelty(c, recent.concat(fresh)) }))
-      .sort((a, b) => a.s - b.s || String(a.c.createdAt || "").localeCompare(String(b.c.createdAt || ""))).slice(0, left).forEach(o => { o.c._kind = "new"; fresh.push(o.c); });
+    const news = pool.filter(c => grpOf(c) === k && isNewCard(c)).map(c => ({ c, s: novelty(c, recent.concat(fresh)) }))
+      .sort((a, b) => a.s - b.s || String(a.c.createdAt || "").localeCompare(String(b.c.createdAt || ""))).slice(0, left).map(o => o.c);
+    news.forEach(c => { c._kind = "new"; fresh.push(c); });
+    // 새 카드가 모자란 과목은 그 과목의 약한 카드(복습)로 같이 채운다 — 사용자 2026-11-25
+    if (k !== "기타" && news.length < left) weak.filter(c => grpOf(c) === k).sort(weakOrder).slice(0, left - news.length).forEach(c => { c._kind = "rev"; c._mixed = true; fresh.push(c); filled.add(c.id); });
   });
   const front = [], back = [], byGroup = {};
   fresh.forEach(c => (byGroup[grpOf(c)] = byGroup[grpOf(c)] || []).push(c));
   const ORDER = SUBJ6.concat(["기타"]), mixed = [];
   for (let i = 0; ORDER.some(k => byGroup[k] && byGroup[k][i]); i++) ORDER.forEach(k => { if (byGroup[k] && byGroup[k][i]) mixed.push(byGroup[k][i]); });
-  mixed.forEach(c => { const near = done.concat(front).some(r => simOf(c, r) >= SIM_LIMIT); c._similar = near; (near ? back : front).push(c); });
+  mixed.forEach(c => { const near = c._kind === "new" && done.concat(front).some(r => simOf(c, r) >= SIM_LIMIT); c._similar = near; (near ? back : front).push(c); });
   // 복습 칸: 약한 카드 중 복습할 날이 된 것 (필수 4과목 먼저)
-  const rev = weak.filter(c => (c.nextReview || "") <= t0).sort((a, b) => (MUST4.includes(grpOf(a)) ? 0 : 1) - (MUST4.includes(grpOf(b)) ? 0 : 1) || byNext(a, b)).map(c => (c._kind = "rev", c._similar = false, c));
+  const rev = weak.filter(c => !filled.has(c.id) && (c.nextReview || "") <= t0).sort((a, b) => (MUST4.includes(grpOf(a)) ? 0 : 1) - (MUST4.includes(grpOf(b)) ? 0 : 1) || byNext(a, b)).map(c => (c._kind = "rev", c._similar = false, c));
   return front.concat(back, rev);
 }
 // 오늘 처음 본 카드(= 오늘 새 카드로 한 것)
@@ -428,10 +433,10 @@ function render() {
 
 /* ============ 홈 ============ */
 function planList(list) {
-  const row = c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(grpOf(c)) + " · " + (c._kind === "new" ? "🆕 새 카드" : (isMastered(c) ? "✅ 다 맞은 카드" : "⚠ 약한 카드") + (c.box ? " · " + c.box + "단계" : "")) + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>';
-  const fresh = list.filter(c => c._kind === "new" && !c._similar), sim = list.filter(c => c._kind === "new" && c._similar), rev = list.filter(c => c._kind === "rev");
+  const row = c => '<li><span class="t"><b>' + esc(c.topic) + '</b><span class="small muted">' + esc(grpOf(c)) + " · " + (c._kind === "new" ? "🆕 새 카드" : (c._mixed ? "🔁 복습(새 카드 없음)" : isMastered(c) ? "✅ 다 맞은 카드" : "⚠ 약한 카드") + (c.box ? " · " + c.box + "단계" : "")) + '</span></span><button class="btn sm" data-act="study" data-id="' + esc(c.id) + '">시작</button></li>';
+  const fresh = list.filter(c => (c._kind === "new" || c._mixed) && !c._similar), sim = list.filter(c => c._kind === "new" && c._similar), rev = list.filter(c => c._kind === "rev" && !c._mixed);
   let h = "";
-  if (fresh.length || sim.length) h += '<h3 class="sub">🆕 새 카드 <span class="small muted">' + (fresh.length + sim.length) + '장</span></h3><ul class="list">' + fresh.map(row).join("") + "</ul>" +
+  if (fresh.length || sim.length) h += '<h3 class="sub">📚 오늘 카드 <span class="small muted">' + (fresh.length + sim.length) + '장 · 새 카드 먼저, 새 카드가 없는 과목은 복습 카드로 같이 채움</span></h3><ul class="list">' + fresh.map(row).join("") + "</ul>" +
     (sim.length ? '<p class="small muted" style="margin:6px 0 0">↓ 앞 카드와 비슷해서 뒤로 보낸 새 카드</p><ul class="list">' + sim.map(row).join("") + "</ul>" : "");
   if (rev.length) h += '<h3 class="sub">🔁 복습 <span class="small muted">' + rev.length + "장 · " + (dayKind() === "review" ? "약한 카드 먼저, 그다음 다 맞은 카드" : "퀴즈를 틀렸거나 설명 80점 밑이었던 카드만") + '</span></h3><ul class="list">' + rev.map(row).join("") + "</ul>";
   return h;
@@ -448,7 +453,7 @@ function viewHome() {
   const miss = ["공중보건학", "피부물리치료"].filter(k => !S.cards.some(c => !isLaw(c) && grpOf(c) === k));
   if (S.cards.length && miss.length) h += '<div class="notice">' + miss.join("·") + " 카드가 아직 없어요. Claude에게 \"" + miss.join("·") + ' 카드 만들어 줘\"라고 하면 넣어 줘요.</div>';
   h += '<p class="small muted" style="margin:0">⚖️ 의료관계법규는 <a href="../law/">기말고사 퀘스트</a>(법규)에서 따로 해요.</p>';
-  const doneBy = k => done.filter(o => grpOf(o.c) === k && isNewCardToday(o.c)).length, revDone = done.filter(o => !isNewCardToday(o.c)).length;
+  const doneBy = k => done.filter(o => grpOf(o.c) === k).length, revDone = done.filter(o => !isNewCardToday(o.c)).length;
   h += '<section class="sheet"><h2>' + DAY_LABEL[dayKind(t0)] + '</h2><p class="small muted" style="margin:0">' + (dayKind(t0) === "review" ? "오늘은 새 카드 없이 복습만 많이 해요 (" + quotaFor(t0) + "장). 다 맞은 카드도 여기서 다시 봐요." : "새 카드를 먼저 과목마다 5장씩(30장). 퀴즈 다 맞고 설명 80점 이상인 카드는 토·일 복습 날에만 다시 나와요.") + '</p><div class="row" style="gap:6px;flex-wrap:wrap">' + (dayKind(t0) === "review" ? '<span class="chip">🔁 복습 ' + revDone + "/" + quotaFor(t0) + "</span>" : SUBJ6.map(k => '<span class="chip' + (doneBy(k) >= PER_SUBJ ? " ok" : " mute") + '">' + k + " " + Math.min(doneBy(k), PER_SUBJ) + "/" + PER_SUBJ + "</span>").join("") + '<span class="chip mute">🔁 복습 ' + revDone + "장</span>") + "</div></section>";
   h += '<section class="sheet"><div class="row" style="justify-content:space-between"><h2>📖 학습 전</h2><span class="chip mute">' + before.length + "장</span></div>" +
     (before.length ? '<div class="row"><button class="btn omr" data-act="studyNext">이어서 공부하기 →</button></div>' + planList(before) : '<p class="small muted" style="margin:0">' + (S.cards.length ? "오늘 공부할 카드를 다 했어요! 👏" : "카드를 가져오면 여기에 나와요.") + "</p>") + "</section>";
