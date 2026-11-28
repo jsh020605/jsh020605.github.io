@@ -1,7 +1,7 @@
 {
- "at": "11/27 07:00",
- "date": "2026-11-27",
- "summary": "총 41건(신규 7). 사이트별 메디잡 32·굿잡피티 8·사람인 2 (자동 수집 11/27 07:00, 굿잡피티 8, 메디잡 4). 오늘·내일 마감: 광혜병원.",
+ "at": "11/28 07:13",
+ "date": "2026-11-28",
+ "summary": "총 41건(신규 1). 사이트별 메디잡 31·굿잡피티 9·사람인 2 (자동 수집 11/28 07:13, 굿잡피티 9, 메디잡 실패(timeout), 마감 확인으로 뺌 1건(강북으뜸병원)). 오늘·내일 마감: 광혜병원, 고려대학교.",
  "checked": "자동 수집 (매일)",
  "items": [
   {
@@ -28,7 +28,7 @@
    "source": "굿잡피티",
    "kind": "대학병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "삼성서울병원 (재활의학과 계약직 사무직(사원) 채용)",
@@ -67,7 +67,7 @@
    "source": "굿잡피티",
    "kind": "대학병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "하병원 (휴일고정 알바)",
@@ -120,6 +120,19 @@
    "kind": "재활병원",
    "first": "2026-11-25",
    "isNew": false
+  },
+  {
+   "hospital": "녹색병원 (재활센터 물리치료사 채용 (정규직 1명))",
+   "region": "서울",
+   "type": "정규직",
+   "career": "경력",
+   "pay": "",
+   "deadline": "2026-12-04",
+   "url": "https://www.goodjobpt.com/bbs/board.php?bo_table=job&wr_id=6394",
+   "source": "굿잡피티",
+   "kind": "종합병원",
+   "first": "2026-11-28",
+   "isNew": true
   },
   {
    "hospital": "원진재단부설 녹색병원 (녹색병원(서울) 물리치료사 모집공고 (정…)",
@@ -262,7 +275,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "미래본병원 (잠실역 7번 출구 도보 1분 미래본병원…)",
@@ -275,7 +288,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "(의)장산의료재단 이춘택병원 (육아휴직 대체)",
@@ -285,19 +298,6 @@
    "pay": "계약직, 내규",
    "deadline": "채용시마감",
    "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3759288",
-   "source": "메디잡",
-   "isNew": false,
-   "kind": "정형·척추 전문병원",
-   "first": "2026-11-17"
-  },
-  {
-   "hospital": "강북으뜸병원 (루틴, 육아휴직 대체)",
-   "region": "서울 강북구",
-   "type": "병원",
-   "career": "경력무관",
-   "pay": "연봉 3,000~4,000만원",
-   "deadline": "채용시마감",
-   "url": "https://www.medijob.cc/com/cpn/com_cpn_100_view_02?recruitSeqno=3776159",
    "source": "메디잡",
    "isNew": false,
    "kind": "정형·척추 전문병원",
@@ -327,7 +327,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "두손병원",
@@ -392,7 +392,7 @@
    "source": "굿잡피티",
    "kind": "정형·척추 전문병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   },
   {
    "hospital": "수병원 (수병원 도수치료사 모집 (사원 ~ 실장급…)",
@@ -535,7 +535,7 @@
    "source": "메디잡",
    "kind": "병원",
    "first": "2026-11-26",
-   "isNew": true
+   "isNew": false
   }
  ]
 }
